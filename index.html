@@ -128,6 +128,36 @@
     </div>
 
     <div class="card row-6">
+      <div class="toolbar"><strong>Матрица рисков (Вероятность × Влияние)</strong><span class="pill">scatter</span></div>
+      <div id="scatterRisks" style="height:380px;"></div>
+    </div>
+    <div class="card row-6">
+      <div class="toolbar"><strong>Распределение по критичности</strong><span class="pill">пайчарт</span></div>
+      <div id="pieImpact" style="height:380px;"></div>
+    </div>
+
+    <div class="card row-12">
+      <div class="toolbar"><strong>Топ-5 критичных рисков</strong><span class="pill">список</span></div>
+      <div id="topRisks" style="padding:20px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid rgba(0,0,0,0.1);">
+              <th style="text-align:left;padding:8px;font-weight:600;">Категория</th>
+              <th style="text-align:left;padding:8px;font-weight:600;">Описание</th>
+              <th style="text-align:center;padding:8px;font-weight:600;">Компонент</th>
+              <th style="text-align:center;padding:8px;font-weight:600;">Вероятность</th>
+              <th style="text-align:center;padding:8px;font-weight:600;">Влияние</th>
+              <th style="text-align:center;padding:8px;font-weight:600;">Оценка</th>
+            </tr>
+          </thead>
+          <tbody id="topRisksBody">
+            <tr><td colspan="6" style="text-align:center;padding:20px;">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card row-6">
       <div class="toolbar"><strong>Выпущено КД по месяцам</strong><span class="pill">время</span></div>
       <div id="line" style="height:300px;"></div>
     </div>
@@ -273,6 +303,90 @@ function barRisksChart(){
   });
   window.addEventListener('resize',()=>el.resize());
 }
+function scatterRisksChart(){
+  const el = echarts.init(document.getElementById('scatterRisks'));
+  const data = DATA.risks_matrix || [];
+  
+  // Маппинг влияния в числа
+  const impactMap = {'Низкое':1, 'Среднее':2, 'Высокое':3, 'Критическое':4};
+  const impactColors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
+  
+  // Группируем по влиянию
+  const seriesData = {};
+  data.forEach(item => {
+    if(!seriesData[item.vliyanie]) seriesData[item.vliyanie] = [];
+    seriesData[item.vliyanie].push({
+      value: [item.veroyatnost, impactMap[item.vliyanie]],
+      name: item.kategoriya,
+      info: item
+    });
+  });
+  
+  const series = Object.keys(seriesData).map(vliyanie => ({
+    name: vliyanie,
+    type: 'scatter',
+    symbolSize: 15,
+    data: seriesData[vliyanie],
+    itemStyle: {color: impactColors[vliyanie]}
+  }));
+  
+  el.setOption({
+    tooltip:{
+      formatter: p => `<b>${p.data.info.kategoriya}</b><br/>
+        ${p.data.info.komponent_nazvanie}<br/>
+        Вероятность: ${(p.data.info.veroyatnost*100).toFixed(0)}%<br/>
+        Влияние: ${p.data.info.vliyanie}<br/>
+        ${p.data.info.opisanie}`
+    },
+    legend:{data:Object.keys(seriesData), bottom:0},
+    xAxis:{name:'Вероятность', min:0, max:1, splitLine:{show:true}},
+    yAxis:{name:'Влияние', min:0, max:5, 
+      axisLabel:{formatter:v=>['','Низкое','Среднее','Высокое','Критическое'][v]||''}},
+    series: series
+  });
+  window.addEventListener('resize',()=>el.resize());
+}
+function pieImpactChart(){
+  const el = echarts.init(document.getElementById('pieImpact'));
+  const data = DATA.risks_by_impact || [];
+  const colors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
+  
+  el.setOption({
+    tooltip:{trigger:'item', formatter: '{b}: {c} ({d}%)'},
+    series:[{
+      type:'pie', 
+      radius:['40%','70%'],
+      itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
+      label:{formatter:'{b}\n{c}', fontSize:12},
+      data: data.map(x=>({name:x.vliyanie, value:x.count, itemStyle:{color:colors[x.vliyanie]}}))
+    }]
+  });
+  window.addEventListener('resize',()=>el.resize());
+}
+function topRisksTable(){
+  const data = DATA.top_risks || [];
+  const tbody = document.getElementById('topRisksBody');
+  
+  if(data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Нет данных</td></tr>';
+    return;
+  }
+  
+  const impactColors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
+  
+  tbody.innerHTML = data.map((r,i) => `
+    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
+      <td style="padding:12px;"><span class="badge">${r.kategoriya}</span></td>
+      <td style="padding:12px;">${r.opisanie}</td>
+      <td style="padding:12px;text-align:center;">${r.komponent_nazvanie}</td>
+      <td style="padding:12px;text-align:center;">${(r.veroyatnost*100).toFixed(0)}%</td>
+      <td style="padding:12px;text-align:center;">
+        <span style="color:${impactColors[r.vliyanie]};font-weight:600;">${r.vliyanie}</span>
+      </td>
+      <td style="padding:12px;text-align:center;font-weight:600;color:#ef4444;">${r.risk_score.toFixed(2)}</td>
+    </tr>
+  `).join('');
+}
 function lineChart(){
   const el = echarts.init(document.getElementById('line'));
   const d = DATA.kdocs_month;
@@ -337,6 +451,9 @@ async function init() {
     pieCountriesChart();
     barChart(); 
     barRisksChart();
+    scatterRisksChart();
+    pieImpactChart();
+    topRisksTable();
     ganttChart(); 
     lineChart(); 
     heatChart();

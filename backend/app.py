@@ -227,6 +227,65 @@ async def get_dashboard_data() -> Dict[str, Any]:
         """)
         risks_by_category = cursor.fetchall()
         
+        # 9. Матрица рисков (для scatter plot)
+        cursor.execute("""
+            SELECT 
+                r.id,
+                r.kategoriya,
+                r.opisanie,
+                r.veroyatnost,
+                r.vliyanie,
+                r.status,
+                k.nazvanie as komponent_nazvanie
+            FROM riski r
+            JOIN komponenty k ON r.komponent_id = k.id
+            WHERE r.status != 'Закрыт'
+            ORDER BY r.veroyatnost DESC, r.vliyanie DESC
+        """)
+        risks_matrix = cursor.fetchall()
+        
+        # 10. Риски по уровню влияния (для pie chart)
+        cursor.execute("""
+            SELECT 
+                vliyanie,
+                COUNT(*) as count
+            FROM riski
+            WHERE status != 'Закрыт'
+            GROUP BY vliyanie
+            ORDER BY 
+                CASE vliyanie
+                    WHEN 'Критическое' THEN 1
+                    WHEN 'Высокое' THEN 2
+                    WHEN 'Среднее' THEN 3
+                    WHEN 'Низкое' THEN 4
+                END
+        """)
+        risks_by_impact = cursor.fetchall()
+        
+        # 11. Топ критичных рисков
+        cursor.execute("""
+            SELECT 
+                r.kategoriya,
+                r.opisanie,
+                r.veroyatnost,
+                r.vliyanie,
+                k.nazvanie as komponent_nazvanie,
+                (r.veroyatnost * 
+                    CASE r.vliyanie
+                        WHEN 'Критическое' THEN 4
+                        WHEN 'Высокое' THEN 3
+                        WHEN 'Среднее' THEN 2
+                        WHEN 'Низкое' THEN 1
+                    END
+                ) as risk_score
+            FROM riski r
+            JOIN komponenty k ON r.komponent_id = k.id
+            WHERE r.status != 'Закрыт'
+            ORDER BY risk_score DESC
+            LIMIT 5
+        """)
+        top_risks = cursor.fetchall()
+        
         # Метаданные
         meta = {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
@@ -245,6 +304,9 @@ async def get_dashboard_data() -> Dict[str, Any]:
             "gantt": gantt,
             "suppliers_by_country": suppliers_by_country,
             "risks_by_category": risks_by_category,
+            "risks_matrix": risks_matrix,
+            "risks_by_impact": risks_by_impact,
+            "top_risks": top_risks,
             "meta": meta
         }
         
