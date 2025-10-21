@@ -111,6 +111,23 @@
     </div>
 
     <div class="card row-6">
+      <div class="toolbar"><strong>Риски по категориям</strong><span class="pill">барчарт</span></div>
+      <div id="barRisks" style="height:320px;"></div>
+    </div>
+    <div class="card row-6">
+      <div class="toolbar"><strong>Статус рисков</strong><span class="pill">инфо</span></div>
+      <div id="risksInfo" style="padding:20px;">
+        <div class="muted">Всего рисков в системе</div>
+        <div class="kpi-value" id="totalRisks">—</div>
+        <div style="margin-top:16px;">
+          <div class="muted">🔴 Открыто: <strong id="openRisks">—</strong></div>
+          <div class="muted">🟡 В работе: <strong id="inProgressRisks">—</strong></div>
+          <div class="muted">🟢 Закрыто: <strong id="closedRisks">—</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card row-6">
       <div class="toolbar"><strong>Выпущено КД по месяцам</strong><span class="pill">время</span></div>
       <div id="line" style="height:300px;"></div>
     </div>
@@ -223,6 +240,39 @@ function barChart(){
   });
   window.addEventListener('resize',()=>el.resize());
 }
+function barRisksChart(){
+  const el = echarts.init(document.getElementById('barRisks'));
+  const data = DATA.risks_by_category || [];
+  
+  // Подсчитаем статистику
+  let totalRisks = 0, openRisks = 0, inProgressRisks = 0, closedRisks = 0;
+  data.forEach(item => {
+    totalRisks += item.total_count;
+    openRisks += item.open_count;
+    inProgressRisks += item.in_progress_count;
+    closedRisks += item.closed_count;
+  });
+  
+  // Обновим статистику
+  document.getElementById('totalRisks').innerText = totalRisks;
+  document.getElementById('openRisks').innerText = openRisks;
+  document.getElementById('inProgressRisks').innerText = inProgressRisks;
+  document.getElementById('closedRisks').innerText = closedRisks;
+  
+  // Отрисуем график
+  el.setOption({
+    tooltip:{trigger:'axis', axisPointer:{type:'shadow'}},
+    legend:{data:['Открыт', 'В работе', 'Закрыт']},
+    xAxis:{type:'category', data:data.map(x=>x.kategoriya)},
+    yAxis:{type:'value'},
+    series:[
+      {name:'Открыт', type:'bar', stack:'total', data:data.map(x=>x.open_count), itemStyle:{color:'#ef4444'}},
+      {name:'В работе', type:'bar', stack:'total', data:data.map(x=>x.in_progress_count), itemStyle:{color:'#f59e0b'}},
+      {name:'Закрыт', type:'bar', stack:'total', data:data.map(x=>x.closed_count), itemStyle:{color:'#10b981'}}
+    ]
+  });
+  window.addEventListener('resize',()=>el.resize());
+}
 function lineChart(){
   const el = echarts.init(document.getElementById('line'));
   const d = DATA.kdocs_month;
@@ -286,6 +336,7 @@ async function init() {
     pieChart(); 
     pieCountriesChart();
     barChart(); 
+    barRisksChart();
     ganttChart(); 
     lineChart(); 
     heatChart();

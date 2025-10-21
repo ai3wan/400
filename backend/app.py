@@ -213,6 +213,20 @@ async def get_dashboard_data() -> Dict[str, Any]:
         """)
         suppliers_by_country = cursor.fetchall()
         
+        # 8. Риски по категориям (для bar chart)
+        cursor.execute("""
+            SELECT 
+                kategoriya,
+                COUNT(*) FILTER (WHERE status = 'Открыт') as open_count,
+                COUNT(*) FILTER (WHERE status = 'В работе') as in_progress_count,
+                COUNT(*) FILTER (WHERE status = 'Закрыт') as closed_count,
+                COUNT(*) as total_count
+            FROM riski
+            GROUP BY kategoriya
+            ORDER BY total_count DESC
+        """)
+        risks_by_category = cursor.fetchall()
+        
         # Метаданные
         meta = {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
@@ -230,6 +244,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
             "heat": heat,
             "gantt": gantt,
             "suppliers_by_country": suppliers_by_country,
+            "risks_by_category": risks_by_category,
             "meta": meta
         }
         
