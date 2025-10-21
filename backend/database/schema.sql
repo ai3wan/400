@@ -5,8 +5,13 @@
 CREATE TABLE IF NOT EXISTS kompanii (
     id SERIAL PRIMARY KEY,
     nazvanie VARCHAR(255) NOT NULL,
+    inn VARCHAR(12),
+    gorod VARCHAR(100),
     rol VARCHAR(50) NOT NULL CHECK (rol IN ('Заказчик', 'Исполнитель', 'Поставщик', 'Проектировщик', 'Сервис', 'Разработчик')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Проверки
+    CONSTRAINT check_kompanii_inn_length CHECK (inn IS NULL OR LENGTH(inn) IN (10, 12))
 );
 
 -- 2. Таблица компонентов
@@ -70,6 +75,8 @@ CREATE TABLE IF NOT EXISTS postavshchiki (
 );
 
 -- Индексы для оптимизации запросов
+CREATE INDEX IF NOT EXISTS idx_kompanii_inn ON kompanii(inn);
+CREATE INDEX IF NOT EXISTS idx_kompanii_gorod ON kompanii(gorod);
 CREATE INDEX IF NOT EXISTS idx_komponenty_period ON komponenty(period);
 CREATE INDEX IF NOT EXISTS idx_komponenty_status ON komponenty(status);
 CREATE INDEX IF NOT EXISTS idx_komponenty_kompaniya ON komponenty(kompaniya_id);
