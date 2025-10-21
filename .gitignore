@@ -35,3 +35,19 @@ Temporary Items
 # Temporary files
 *.tmp
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+
+# Environment variables
+.env
+.env.local
+
