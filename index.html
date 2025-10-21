@@ -231,16 +231,20 @@ function fmtDelta(curr, prev) {
   return '<span class="'+cls+'">'+arrow+' '+diff.toFixed(1)+' ('+pct.toFixed(1)+'%)</span>';
 }
 function setKPI() {
-  document.getElementById('kpi-components').innerText = DATA.kpi.komponenty_count_curr.toLocaleString('ru-RU');
-  document.getElementById('kpi-components-delta').innerHTML = fmtDelta(DATA.kpi.komponenty_count_curr, DATA.kpi.komponenty_count_prev);
-  document.getElementById('kpi-progress').innerText = DATA.kpi.avg_progress_curr.toFixed(1) + '%';
-  document.getElementById('kpi-progress-delta').innerHTML = fmtDelta(DATA.kpi.avg_progress_curr, DATA.kpi.avg_progress_prev);
-  document.getElementById('kpi-risks').innerText = DATA.kpi.risks_open_curr.toLocaleString('ru-RU');
-  document.getElementById('kpi-risks-delta').innerHTML = fmtDelta(DATA.kpi.risks_open_curr, DATA.kpi.risks_open_prev);
+  if(!DATA.kpi) {
+    console.error('Нет данных KPI');
+    return;
+  }
+  document.getElementById('kpi-components').innerText = (DATA.kpi.komponenty_count_curr || 0).toLocaleString('ru-RU');
+  document.getElementById('kpi-components-delta').innerHTML = fmtDelta(DATA.kpi.komponenty_count_curr || 0, DATA.kpi.komponenty_count_prev || 0);
+  document.getElementById('kpi-progress').innerText = (DATA.kpi.avg_progress_curr || 0).toFixed(1) + '%';
+  document.getElementById('kpi-progress-delta').innerHTML = fmtDelta(DATA.kpi.avg_progress_curr || 0, DATA.kpi.avg_progress_prev || 0);
+  document.getElementById('kpi-risks').innerText = (DATA.kpi.risks_open_curr || 0).toLocaleString('ru-RU');
+  document.getElementById('kpi-risks-delta').innerHTML = fmtDelta(DATA.kpi.risks_open_curr || 0, DATA.kpi.risks_open_prev || 0);
 }
 function initFilters(){
-  const st = [...new Set(DATA.pie_status.map(x=>x.status))];
-  const roles = [...new Set(DATA.heat.cells.map(x=>x.rol))];
+  const st = [...new Set((DATA.pie_status || []).map(x=>x.status).filter(Boolean))];
+  const roles = [...new Set((DATA.heat?.cells || []).map(x=>x.rol).filter(Boolean))];
   const sSel = document.getElementById('status');
   sSel.innerHTML = '<option value="all">Все</option>' + st.map(x=>`<option>${x}</option>`).join('');
   const rSel = document.getElementById('role');
@@ -248,22 +252,36 @@ function initFilters(){
 }
 function pieChart(){
   const el = echarts.init(document.getElementById('pie'));
-  const data = DATA.pie_status.slice(0);
-  data.sort((a,b)=>b.count-a.count);
+  const data = (DATA.pie_status || []).slice(0);
+  
+  if(data.length === 0) {
+    console.warn('Нет данных для pie_status');
+    return;
+  }
+  
+  data.sort((a,b)=>(b.count||0)-(a.count||0));
   const top = data.slice(0,6);
-  const other = data.slice(6).reduce((acc,x)=>acc+x.count,0);
+  const other = data.slice(6).reduce((acc,x)=>acc+(x.count||0),0);
   if(other>0) top.push({status:'Прочее', count:other});
   el.setOption({
     tooltip:{trigger:'item'},
     series:[{type:'pie', radius:['40%','70%'], itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},
-             data: top.map(x=>({name:x.status, value:x.count}))}]
+             data: top.map(x=>({name:x.status || 'Неизвестно', value:x.count || 0}))}]
   });
   window.addEventListener('resize',()=>el.resize());
 }
 function pieCountriesChart(){
   const el = echarts.init(document.getElementById('pieCountries'));
   const data = DATA.suppliers_by_country || [];
-  const total = data.reduce((acc,x)=>acc+x.count,0);
+  
+  if(data.length === 0) {
+    console.warn('Нет данных для suppliers_by_country');
+    document.getElementById('totalSuppliers').innerText = '0';
+    document.getElementById('countriesCount').innerText = '0';
+    return;
+  }
+  
+  const total = data.reduce((acc,x)=>acc+(x.count||0),0);
   
   // Обновить статистику
   document.getElementById('totalSuppliers').innerText = total;
@@ -278,25 +296,37 @@ function pieCountriesChart(){
       center:['60%','50%'],
       itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
       label:{formatter:'{b}\n{c}', fontSize:11},
-      data: data.map(x=>({name:x.strana, value:x.count}))
+      data: data.map(x=>({name:x.strana || 'Неизвестно', value:x.count || 0}))
     }]
   });
   window.addEventListener('resize',()=>el.resize());
 }
 function barChart(){
   const el = echarts.init(document.getElementById('bar'));
-  const data = DATA.top_suppliers;
+  const data = DATA.top_suppliers || [];
+  
+  if(data.length === 0) {
+    console.warn('Нет данных для top_suppliers');
+    return;
+  }
+  
   el.setOption({
     tooltip:{trigger:'axis'},
-    xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii)},
+    xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii || 'Неизвестно')},
     yAxis:{type:'value'},
-    series:[{type:'bar', data:data.map(x=>x.components)}]
+    series:[{type:'bar', data:data.map(x=>x.components || 0)}]
   });
   window.addEventListener('resize',()=>el.resize());
 }
 function pieRolesChart(){
   const el = echarts.init(document.getElementById('pieRoles'));
   const data = DATA.companies_by_role || [];
+  
+  if(data.length === 0) {
+    console.warn('Нет данных для companies_by_role');
+    return;
+  }
+  
   const total = data.reduce((acc,x)=>acc+x.count,0);
   
   // Обновим статистику
@@ -328,9 +358,9 @@ function pieRolesChart(){
       itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
       label:{formatter:'{b}\n{c}', fontSize:12, fontWeight:600},
       data: data.map(x=>({
-        name:x.rol, 
+        name:x.rol || 'Неизвестно', 
         value:x.count,
-        itemStyle:{color:roleColors[x.rol] || '#6b7280'}
+        itemStyle:{color:(x.rol && roleColors[x.rol]) || '#6b7280'}
       }))
     }]
   });
@@ -340,13 +370,22 @@ function barRisksChart(){
   const el = echarts.init(document.getElementById('barRisks'));
   const data = DATA.risks_by_category || [];
   
+  if(data.length === 0) {
+    console.warn('Нет данных для risks_by_category');
+    document.getElementById('totalRisks').innerText = '0';
+    document.getElementById('openRisks').innerText = '0';
+    document.getElementById('inProgressRisks').innerText = '0';
+    document.getElementById('closedRisks').innerText = '0';
+    return;
+  }
+  
   // Подсчитаем статистику
   let totalRisks = 0, openRisks = 0, inProgressRisks = 0, closedRisks = 0;
   data.forEach(item => {
-    totalRisks += item.total_count;
-    openRisks += item.open_count;
-    inProgressRisks += item.in_progress_count;
-    closedRisks += item.closed_count;
+    totalRisks += item.total_count || 0;
+    openRisks += item.open_count || 0;
+    inProgressRisks += item.in_progress_count || 0;
+    closedRisks += item.closed_count || 0;
   });
   
   // Обновим статистику
@@ -373,6 +412,11 @@ function scatterRisksChart(){
   const el = echarts.init(document.getElementById('scatterRisks'));
   const data = DATA.risks_matrix || [];
   
+  if(data.length === 0) {
+    console.warn('Нет данных для risks_matrix');
+    return;
+  }
+  
   // Маппинг влияния в числа
   const impactMap = {'Низкое':1, 'Среднее':2, 'Высокое':3, 'Критическое':4};
   const impactColors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
@@ -380,10 +424,11 @@ function scatterRisksChart(){
   // Группируем по влиянию
   const seriesData = {};
   data.forEach(item => {
+    if(!item.vliyanie) return; // Пропускаем если нет влияния
     if(!seriesData[item.vliyanie]) seriesData[item.vliyanie] = [];
     seriesData[item.vliyanie].push({
-      value: [item.veroyatnost, impactMap[item.vliyanie]],
-      name: item.kategoriya,
+      value: [item.veroyatnost || 0, impactMap[item.vliyanie] || 1],
+      name: item.kategoriya || 'Неизвестно',
       info: item
     });
   });
@@ -393,7 +438,7 @@ function scatterRisksChart(){
     type: 'scatter',
     symbolSize: 15,
     data: seriesData[vliyanie],
-    itemStyle: {color: impactColors[vliyanie]}
+    itemStyle: {color: impactColors[vliyanie] || '#6b7280'}
   }));
   
   el.setOption({
@@ -415,6 +460,12 @@ function scatterRisksChart(){
 function pieImpactChart(){
   const el = echarts.init(document.getElementById('pieImpact'));
   const data = DATA.risks_by_impact || [];
+  
+  if(data.length === 0) {
+    console.warn('Нет данных для risks_by_impact');
+    return;
+  }
+  
   const colors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
   
   el.setOption({
@@ -424,7 +475,11 @@ function pieImpactChart(){
       radius:['40%','70%'],
       itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
       label:{formatter:'{b}\n{c}', fontSize:12},
-      data: data.map(x=>({name:x.vliyanie, value:x.count, itemStyle:{color:colors[x.vliyanie]}}))
+      data: data.map(x=>({
+        name:x.vliyanie || 'Неизвестно', 
+        value:x.count, 
+        itemStyle:{color:(x.vliyanie && colors[x.vliyanie]) || '#6b7280'}
+      }))
     }]
   });
   window.addEventListener('resize',()=>el.resize());
@@ -440,18 +495,20 @@ function topRisksTable(){
   
   const impactColors = {'Низкое':'#10b981', 'Среднее':'#f59e0b', 'Высокое':'#ef4444', 'Критическое':'#7f1d1d'};
   
-  tbody.innerHTML = data.map((r,i) => `
+  tbody.innerHTML = data.map((r,i) => {
+    const color = (r.vliyanie && impactColors[r.vliyanie]) || '#6b7280';
+    return `
     <tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
-      <td style="padding:12px;"><span class="badge">${r.kategoriya}</span></td>
-      <td style="padding:12px;">${r.opisanie}</td>
-      <td style="padding:12px;text-align:center;">${r.komponent_nazvanie}</td>
-      <td style="padding:12px;text-align:center;">${(r.veroyatnost*100).toFixed(0)}%</td>
+      <td style="padding:12px;"><span class="badge">${r.kategoriya || 'Неизвестно'}</span></td>
+      <td style="padding:12px;">${r.opisanie || 'Нет описания'}</td>
+      <td style="padding:12px;text-align:center;">${r.komponent_nazvanie || '—'}</td>
+      <td style="padding:12px;text-align:center;">${((r.veroyatnost || 0)*100).toFixed(0)}%</td>
       <td style="padding:12px;text-align:center;">
-        <span style="color:${impactColors[r.vliyanie]};font-weight:600;">${r.vliyanie}</span>
+        <span style="color:${color};font-weight:600;">${r.vliyanie || 'Неизвестно'}</span>
       </td>
-      <td style="padding:12px;text-align:center;font-weight:600;color:#ef4444;">${r.risk_score.toFixed(2)}</td>
+      <td style="padding:12px;text-align:center;font-weight:600;color:#ef4444;">${(r.risk_score || 0).toFixed(2)}</td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 function lineChart(){
   const el = echarts.init(document.getElementById('line'));
@@ -470,16 +527,33 @@ function lineChart(){
 }
 function heatChart(){
   const el = echarts.init(document.getElementById('heat'));
-  const roles = DATA.heat.roles;
-  const cats = DATA.heat.categories;
-  const m = new Map(DATA.heat.cells.map(x=>[x.rol+'|'+x.kategoriya_riska, x.cnt]));
+  
+  if(!DATA.heat || !DATA.heat.roles || !DATA.heat.categories) {
+    console.warn('Нет данных для heat chart');
+    return;
+  }
+  
+  const roles = DATA.heat.roles || [];
+  const cats = DATA.heat.categories || [];
+  const cells = DATA.heat.cells || [];
+  
+  if(roles.length === 0 || cats.length === 0) {
+    console.warn('Пустые данные для heatmap');
+    return;
+  }
+  
+  const m = new Map(cells.map(x=>[x.rol+'|'+x.kategoriya_riska, x.cnt||0]));
   const seriesData = [];
   roles.forEach((r,ri)=>cats.forEach((c,ci)=>seriesData.push([ci,ri,m.get(r+'|'+c)||0])));
+  
+  const maxVal = seriesData.length > 0 ? Math.max(...seriesData.map(x=>x[2])) : 10;
+  
   el.setOption({
-    tooltip:{}, grid:{left:70,bottom:30,top:20,right:20},
+    tooltip:{}, 
+    grid:{left:70,bottom:30,top:20,right:20},
     xAxis:{type:'category', data:cats},
     yAxis:{type:'category', data:roles},
-    visualMap:{min:0,max:Math.max(...seriesData.map(x=>x[2])), calculable:true, orient:'horizontal', left:'center', bottom:0},
+    visualMap:{min:0,max:maxVal, calculable:true, orient:'horizontal', left:'center', bottom:0},
     series:[{type:'heatmap', data:seriesData}]
   });
   window.addEventListener('resize',()=>el.resize());
