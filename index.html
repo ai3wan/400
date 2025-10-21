@@ -205,9 +205,16 @@ let DATA = null; // Данные загружаются из API
 // Функция загрузки данных из API
 async function loadData() {
   try {
+    console.log('Загрузка данных из API:', API_URL);
     const response = await fetch(`${API_URL}/dashboard-data`);
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     DATA = await response.json();
+    console.log('Данные загружены успешно:', DATA);
+    
+    // Проверка критичных данных
+    if(!DATA.kdocs_month) console.warn('kdocs_month отсутствует');
+    if(!DATA.gantt) console.warn('gantt отсутствует');
+    
     return DATA;
   } catch (error) {
     console.error('Ошибка загрузки данных из API:', error);
@@ -448,7 +455,11 @@ function topRisksTable(){
 }
 function lineChart(){
   const el = echarts.init(document.getElementById('line'));
-  const d = DATA.kdocs_month;
+  const d = DATA.kdocs_month || [];
+  if(d.length === 0) {
+    console.warn('Нет данных для line chart');
+    return;
+  }
   el.setOption({
     tooltip:{trigger:'axis'},
     xAxis:{type:'category', data:d.map(x=>x.data_vypuska)},
@@ -478,12 +489,33 @@ function ganttChart(){
   const div = document.createElement('div');
   div.id = 'ganttDiv'; div.style.width='100%'; div.style.height='360px';
   svg.replaceWith(div);
-  const tasks = DATA.gantt.map(t=>({
-    id: t.id, name: t.name, start: t.start, end: t.end, progress: t.progress, custom_class: t.status.replace(' ','').toLowerCase(), dependencies:''
+  
+  const ganttData = DATA.gantt || [];
+  if(ganttData.length === 0) {
+    div.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">Нет данных для диаграммы Ганта</div>';
+    console.warn('Нет данных для gantt chart');
+    return;
+  }
+  
+  const tasks = ganttData.filter(t => t.start && t.end).map(t=>({
+    id: t.id, 
+    name: t.name, 
+    start: t.start, 
+    end: t.end, 
+    progress: t.progress || 0, 
+    custom_class: (t.status || 'pending').replace(' ','').toLowerCase(), 
+    dependencies:''
   }));
+  
+  if(tasks.length === 0) {
+    div.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">Нет задач с корректными датами</div>';
+    return;
+  }
+  
   const gantt = new Gantt('#ganttDiv', tasks, {
     view_mode: 'Month',
     custom_popup_html: function(task){
+      if(!task._start || !task._end) return '<div>Некорректные даты</div>';
       return '<div class="details-container"><h5>'+task.name+'</h5><p>С '+task._start.toLocaleDateString('ru-RU')+' по '+task._end.toLocaleDateString('ru-RU')+'</p><p>Готовность: '+task.progress+'%</p></div>';
     }
   });
