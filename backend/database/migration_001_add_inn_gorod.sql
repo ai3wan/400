@@ -1,14 +1,12 @@
 -- Миграция: Добавление полей ИНН и Город в таблицу kompanii
 -- Дата: 2025-10-21
 
--- Добавить новые колонки
-ALTER TABLE kompanii ADD COLUMN IF NOT EXISTS inn VARCHAR(12);
-ALTER TABLE kompanii ADD COLUMN IF NOT EXISTS gorod VARCHAR(100);
-
--- Добавить проверку длины ИНН
+-- Удалить старое ограничение (если было)
 ALTER TABLE kompanii DROP CONSTRAINT IF EXISTS check_kompanii_inn_length;
-ALTER TABLE kompanii ADD CONSTRAINT check_kompanii_inn_length 
-    CHECK (inn IS NULL OR LENGTH(inn) IN (10, 12));
+
+-- Добавить новые колонки (если еще нет)
+ALTER TABLE kompanii ADD COLUMN IF NOT EXISTS inn VARCHAR(20);
+ALTER TABLE kompanii ADD COLUMN IF NOT EXISTS gorod VARCHAR(100);
 
 -- Создать индексы
 CREATE INDEX IF NOT EXISTS idx_kompanii_inn ON kompanii(inn);

@@ -5,13 +5,10 @@
 CREATE TABLE IF NOT EXISTS kompanii (
     id SERIAL PRIMARY KEY,
     nazvanie VARCHAR(255) NOT NULL,
-    inn VARCHAR(12),
+    inn VARCHAR(20),
     gorod VARCHAR(100),
     rol VARCHAR(50) NOT NULL CHECK (rol IN ('Заказчик', 'Исполнитель', 'Поставщик', 'Проектировщик', 'Сервис', 'Разработчик')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Проверки
-    CONSTRAINT check_kompanii_inn_length CHECK (inn IS NULL OR LENGTH(inn) IN (10, 12))
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. Таблица компонентов
