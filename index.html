@@ -89,6 +89,23 @@
       <div id="bar" style="height:320px;"></div>
     </div>
 
+    <div class="card row-6">
+      <div class="toolbar"><strong>Компании по ролям</strong><span class="pill">пайчарт</span></div>
+      <div id="pieRoles" style="height:320px;"></div>
+    </div>
+    <div class="card row-6">
+      <div class="toolbar"><strong>Статистика компаний</strong><span class="pill">инфо</span></div>
+      <div id="companiesInfo" style="padding:20px;">
+        <div class="muted">Всего компаний в проекте</div>
+        <div class="kpi-value" id="totalCompanies">—</div>
+        <div style="margin-top:16px;">
+          <div class="muted">🏭 Поставщиков: <strong id="suppliersCount">—</strong></div>
+          <div class="muted">🔧 Разработчиков: <strong id="developersCount">—</strong></div>
+          <div class="muted">📊 Других: <strong id="othersCount">—</strong></div>
+        </div>
+      </div>
+    </div>
+
     <div class="card row-12">
       <div class="toolbar"><strong>Диаграмма Ганта: разработка/поставка компонентов</strong><span class="pill">Gantt</span></div>
       <svg id="gantt" style="width:100%;height:380px;"></svg>
@@ -267,6 +284,48 @@ function barChart(){
     xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii)},
     yAxis:{type:'value'},
     series:[{type:'bar', data:data.map(x=>x.components)}]
+  });
+  window.addEventListener('resize',()=>el.resize());
+}
+function pieRolesChart(){
+  const el = echarts.init(document.getElementById('pieRoles'));
+  const data = DATA.companies_by_role || [];
+  const total = data.reduce((acc,x)=>acc+x.count,0);
+  
+  // Обновим статистику
+  document.getElementById('totalCompanies').innerText = total;
+  const suppliers = data.find(x=>x.rol==='Поставщик')?.count || 0;
+  const developers = data.find(x=>x.rol==='Разработчик')?.count || 0;
+  const others = total - suppliers - developers;
+  document.getElementById('suppliersCount').innerText = suppliers;
+  document.getElementById('developersCount').innerText = developers;
+  document.getElementById('othersCount').innerText = others;
+  
+  // Цвета для ролей
+  const roleColors = {
+    'Поставщик': '#16BDCA',
+    'Разработчик': '#2563EB',
+    'Заказчик': '#10b981',
+    'Исполнитель': '#f59e0b',
+    'Проектировщик': '#8b5cf6',
+    'Сервис': '#ec4899'
+  };
+  
+  el.setOption({
+    tooltip:{trigger:'item', formatter: '{b}: {c} ({d}%)'},
+    legend:{orient:'vertical', left:'left', top:'middle'},
+    series:[{
+      type:'pie', 
+      radius:['40%','70%'],
+      center:['60%','50%'],
+      itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
+      label:{formatter:'{b}\n{c}', fontSize:12, fontWeight:600},
+      data: data.map(x=>({
+        name:x.rol, 
+        value:x.count,
+        itemStyle:{color:roleColors[x.rol] || '#6b7280'}
+      }))
+    }]
   });
   window.addEventListener('resize',()=>el.resize());
 }
@@ -450,6 +509,7 @@ async function init() {
     pieChart(); 
     pieCountriesChart();
     barChart(); 
+    pieRolesChart();
     barRisksChart();
     scatterRisksChart();
     pieImpactChart();

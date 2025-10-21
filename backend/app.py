@@ -286,6 +286,17 @@ async def get_dashboard_data() -> Dict[str, Any]:
         """)
         top_risks = cursor.fetchall()
         
+        # 12. Компании по ролям (для pie chart)
+        cursor.execute("""
+            SELECT 
+                rol,
+                COUNT(*) as count
+            FROM kompanii
+            GROUP BY rol
+            ORDER BY count DESC
+        """)
+        companies_by_role = cursor.fetchall()
+        
         # Метаданные
         meta = {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
@@ -307,6 +318,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
             "risks_matrix": risks_matrix,
             "risks_by_impact": risks_by_impact,
             "top_risks": top_risks,
+            "companies_by_role": companies_by_role,
             "meta": meta
         }
         
