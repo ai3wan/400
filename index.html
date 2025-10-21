@@ -96,6 +96,21 @@
     </div>
 
     <div class="card row-6">
+      <div class="toolbar"><strong>Поставщики по странам</strong><span class="pill">пайчарт</span></div>
+      <div id="pieCountries" style="height:320px;"></div>
+    </div>
+    <div class="card row-6">
+      <div class="toolbar"><strong>Статистика поставщиков</strong><span class="pill">инфо</span></div>
+      <div id="suppliersInfo" style="padding:20px;">
+        <div class="muted">Всего активных поставщиков</div>
+        <div class="kpi-value" id="totalSuppliers">—</div>
+        <div style="margin-top:16px;">
+          <div class="muted">🌍 Представлено стран: <strong id="countriesCount">—</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card row-6">
       <div class="toolbar"><strong>Выпущено КД по месяцам</strong><span class="pill">время</span></div>
       <div id="line" style="height:300px;"></div>
     </div>
@@ -174,6 +189,29 @@ function pieChart(){
   });
   window.addEventListener('resize',()=>el.resize());
 }
+function pieCountriesChart(){
+  const el = echarts.init(document.getElementById('pieCountries'));
+  const data = DATA.suppliers_by_country || [];
+  const total = data.reduce((acc,x)=>acc+x.count,0);
+  
+  // Обновить статистику
+  document.getElementById('totalSuppliers').innerText = total;
+  document.getElementById('countriesCount').innerText = data.length;
+  
+  el.setOption({
+    tooltip:{trigger:'item', formatter: '{b}: {c} ({d}%)'},
+    legend:{orient:'vertical', left:'left', top:'middle', textStyle:{fontSize:11}},
+    series:[{
+      type:'pie', 
+      radius:'65%',
+      center:['60%','50%'],
+      itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
+      label:{formatter:'{b}\n{c}', fontSize:11},
+      data: data.map(x=>({name:x.strana, value:x.count}))
+    }]
+  });
+  window.addEventListener('resize',()=>el.resize());
+}
 function barChart(){
   const el = echarts.init(document.getElementById('bar'));
   const data = DATA.top_suppliers;
@@ -246,6 +284,7 @@ async function init() {
     setKPI(); 
     initFilters(); 
     pieChart(); 
+    pieCountriesChart();
     barChart(); 
     ganttChart(); 
     lineChart(); 
