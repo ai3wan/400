@@ -177,16 +177,16 @@ function fmtDelta(curr, prev) {
   return '<span class="'+cls+'">'+arrow+' '+diff.toFixed(1)+' ('+pct.toFixed(1)+'%)</span>';
 }
 function setKPI() {
-  document.getElementById('kpi-components').innerText = DATA.kpi.komponenty_count_curr.toLocaleString('ru-RU');
-  document.getElementById('kpi-components-delta').innerHTML = fmtDelta(DATA.kpi.komponenty_count_curr, DATA.kpi.komponenty_count_prev);
-  document.getElementById('kpi-progress').innerText = DATA.kpi.avg_progress_curr.toFixed(1) + '%';
-  document.getElementById('kpi-progress-delta').innerHTML = fmtDelta(DATA.kpi.avg_progress_curr, DATA.kpi.avg_progress_prev);
-  document.getElementById('kpi-risks').innerText = DATA.kpi.risks_open_curr.toLocaleString('ru-RU');
-  document.getElementById('kpi-risks-delta').innerHTML = fmtDelta(DATA.kpi.risks_open_curr, DATA.kpi.risks_open_prev);
+  document.getElementById('kpi-components').innerText = (DATA.kpi?.komponenty_count_curr || 0).toLocaleString('ru-RU');
+  document.getElementById('kpi-components-delta').innerHTML = fmtDelta(DATA.kpi?.komponenty_count_curr || 0, DATA.kpi?.komponenty_count_prev || 0);
+  document.getElementById('kpi-progress').innerText = (DATA.kpi?.avg_progress_curr || 0).toFixed(1) + '%';
+  document.getElementById('kpi-progress-delta').innerHTML = fmtDelta(DATA.kpi?.avg_progress_curr || 0, DATA.kpi?.avg_progress_prev || 0);
+  document.getElementById('kpi-risks').innerText = (DATA.kpi?.risks_open_curr || 0).toLocaleString('ru-RU');
+  document.getElementById('kpi-risks-delta').innerHTML = fmtDelta(DATA.kpi?.risks_open_curr || 0, DATA.kpi?.risks_open_prev || 0);
 }
 function initFilters(){
-  const st = [...new Set(DATA.pie_status.map(x=>x.status))];
-  const roles = [...new Set(DATA.heat.cells.map(x=>x.rol))];
+  const st = [...new Set((DATA.pie_status || []).map(x=>x.status))];
+  const roles = [...new Set((DATA.heat?.cells || []).map(x=>x.rol))];
   const sSel = document.getElementById('status');
   sSel.innerHTML = '<option value="all">Все</option>' + st.map(x=>`<option>${x}</option>`).join('');
   const rSel = document.getElementById('role');
