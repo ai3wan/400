@@ -275,20 +275,20 @@ function barRisksChart(){
 }
 function lineChart(){
   const el = echarts.init(document.getElementById('line'));
-  const d = DATA.kdocs_month;
+  const d = DATA.kdocs_month || [];
   el.setOption({
     tooltip:{trigger:'axis'},
-    xAxis:{type:'category', data:d.map(x=>x.data_vypuska)},
+    xAxis:{type:'category', data:d.map(x=>x.data_vypuska || '')},
     yAxis:{type:'value'},
-    series:[{type:'line', smooth:true, data:d.map(x=>x.cum)}]
+    series:[{type:'line', smooth:true, data:d.map(x=>x.cum || 0)}]
   });
   window.addEventListener('resize',()=>el.resize());
 }
 function heatChart(){
   const el = echarts.init(document.getElementById('heat'));
-  const roles = DATA.heat.roles;
-  const cats = DATA.heat.categories;
-  const m = new Map(DATA.heat.cells.map(x=>[x.rol+'|'+x.kategoriya_riska, x.cnt]));
+  const roles = DATA.heat?.roles || [];
+  const cats = DATA.heat?.categories || [];
+  const m = new Map((DATA.heat?.cells || []).map(x=>[x.rol+'|'+x.kategoriya_riska, x.cnt]));
   const seriesData = [];
   roles.forEach((r,ri)=>cats.forEach((c,ci)=>seriesData.push([ci,ri,m.get(r+'|'+c)||0])));
   el.setOption({
@@ -305,13 +305,15 @@ function ganttChart(){
   const div = document.createElement('div');
   div.id = 'ganttDiv'; div.style.width='100%'; div.style.height='360px';
   svg.replaceWith(div);
-  const tasks = DATA.gantt.map(t=>({
-    id: t.id, name: t.name, start: t.start, end: t.end, progress: t.progress, custom_class: t.status.replace(' ','').toLowerCase(), dependencies:''
+  const tasks = (DATA.gantt || []).map(t=>({
+    id: t.id || '', name: t.name || '', start: t.start || '', end: t.end || '', progress: t.progress || 0, custom_class: (t.status || '').replace(' ','').toLowerCase(), dependencies:''
   }));
   const gantt = new Gantt('#ganttDiv', tasks, {
     view_mode: 'Month',
     custom_popup_html: function(task){
-      return '<div class="details-container"><h5>'+task.name+'</h5><p>С '+task._start.toLocaleDateString('ru-RU')+' по '+task._end.toLocaleDateString('ru-RU')+'</p><p>Готовность: '+task.progress+'%</p></div>';
+      const startDate = task._start ? task._start.toLocaleDateString('ru-RU') : 'Не указано';
+      const endDate = task._end ? task._end.toLocaleDateString('ru-RU') : 'Не указано';
+      return '<div class="details-container"><h5>'+task.name+'</h5><p>С '+startDate+' по '+endDate+'</p><p>Готовность: '+task.progress+'%</p></div>';
     }
   });
   const style = document.createElement('style');
