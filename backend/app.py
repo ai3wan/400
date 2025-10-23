@@ -1,6 +1,6 @@
 """
-FastAPI Backend для дашборда КУПЭ
-Подключение к PostgreSQL и API endpoints
+FastAPI Backend для дашборда компаний
+Простая структура с таблицей company
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,13 +9,13 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 from dotenv import load_dotenv
 
 # Загрузка переменных окружения из .env файла
 load_dotenv()
 
-app = FastAPI(title="Dashboard KUPE API", version="1.0.0")
+app = FastAPI(title="Company Dashboard API", version="1.0.0")
 
 # CORS настройки (разрешаем запросы с фронтенда)
 app.add_middleware(
@@ -43,11 +43,13 @@ def get_db_connection():
 async def root():
     """Главная страница API"""
     return {
-        "message": "Dashboard KUPE API",
+        "message": "Company Dashboard API",
         "version": "1.0.0",
         "endpoints": {
             "/api/dashboard-data": "Получить все данные дашборда",
-            "/api/health": "Проверка здоровья API и БД"
+            "/api/health": "Проверка здоровья API и БД",
+            "/api/companies": "Получить список всех компаний",
+            "/api/companies/{company_id}": "Получить данные конкретной компании"
         }
     }
 
@@ -58,14 +60,14 @@ async def health_check():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT version();")
-        db_version = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM company;")
+        count = cursor.fetchone()[0]
         cursor.close()
         conn.close()
         return {
             "status": "healthy",
             "database": "connected",
-            "db_version": db_version
+            "companies_count": count
         }
     except Exception as e:
         return JSONResponse(
@@ -74,185 +76,246 @@ async def health_check():
         )
 
 
-@app.get("/api/dashboard-data")
-async def get_dashboard_data() -> Dict[str, Any]:
-    """
-    Получить все данные для дашборда из PostgreSQL
-    """
+@app.get("/api/companies")
+async def get_companies():
+    """Получить список всех компаний"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # 1. KPI данные
+        cursor.execute("""
+            SELECT id, short_name, full_name, inn, region, address, 
+                   ido, ifr, ipd, spark_risk, authorized_capital, registration_date
+            FROM company 
+            ORDER BY short_name
+        """)
+        
+        companies = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return {"companies": companies}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.get("/api/companies/{company_id}")
+async def get_company(company_id: int):
+    """Получить данные конкретной компании"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("""
+            SELECT id, short_name, full_name, inn, region, address, 
+                   ido, ifr, ipd, spark_risk, authorized_capital, registration_date
+            FROM company 
+            WHERE id = %s
+        """, (company_id,))
+        
+        company = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not company:
+            raise HTTPException(status_code=404, detail="Company not found")
+        
+        return {"company": company}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.get("/api/dashboard-data")
+async def get_dashboard_data() -> Dict[str, Any]:
+    """
+    Получить все данные для дашборда из таблицы company
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # 1. KPI метрики
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_companies,
+                AVG(ido) as avg_ido,
+                AVG(ifr) as avg_ifr,
+                AVG(ipd) as avg_ipd,
+                AVG(authorized_capital) as avg_capital,
+                MIN(authorized_capital) as min_capital,
+                MAX(authorized_capital) as max_capital,
+                COUNT(CASE WHEN spark_risk = 'Низкий' THEN 1 END) as low_risk_count,
+                COUNT(CASE WHEN spark_risk = 'Средний' THEN 1 END) as medium_risk_count,
+                COUNT(CASE WHEN spark_risk = 'Высокий' THEN 1 END) as high_risk_count,
+                COUNT(CASE WHEN spark_risk = 'Критический' THEN 1 END) as critical_risk_count
+            FROM company
+        """)
+        kpi_data = cursor.fetchone()
+
+        # 2. Распределение компаний по регионам
+        cursor.execute("""
+            SELECT region, COUNT(*) as count
+            FROM company
+            WHERE region IS NOT NULL
+            GROUP BY region
+            ORDER BY COUNT(*) DESC
+        """)
+        companies_by_region = cursor.fetchall()
+
+        # 3. Распределение компаний по рискам
+        cursor.execute("""
+            SELECT spark_risk, COUNT(*) as count
+            FROM company
+            WHERE spark_risk IS NOT NULL
+            GROUP BY spark_risk
+            ORDER BY 
+                CASE spark_risk
+                    WHEN 'Низкий' THEN 1
+                    WHEN 'Средний' THEN 2
+                    WHEN 'Высокий' THEN 3
+                    WHEN 'Критический' THEN 4
+                    ELSE 5
+                END
+        """)
+        companies_by_risk = cursor.fetchall()
+
+        # 4. Топ компаний по уставному капиталу
+        cursor.execute("""
+            SELECT short_name, authorized_capital, spark_risk, region
+            FROM company
+            WHERE authorized_capital IS NOT NULL
+            ORDER BY authorized_capital DESC
+            LIMIT 10
+        """)
+        top_companies_by_capital = cursor.fetchall()
+
+        # 5. Корреляция риска и капитала
+        cursor.execute("""
+            SELECT short_name, spark_risk, authorized_capital, ido, ifr, ipd
+            FROM company
+            WHERE spark_risk IS NOT NULL AND authorized_capital IS NOT NULL
+            ORDER BY authorized_capital DESC
+            LIMIT 15
+        """)
+        risk_capital_correlation = cursor.fetchall()
+
+        # 6. Статистика по показателям ИДО, ИФР, ИПД
         cursor.execute("""
             SELECT 
-                COUNT(*) FILTER (WHERE period = 'current') as komponenty_count_curr,
-                COUNT(*) FILTER (WHERE period = 'previous') as komponenty_count_prev,
-                AVG(progress) FILTER (WHERE period = 'current') as avg_progress_curr,
-                AVG(progress) FILTER (WHERE period = 'previous') as avg_progress_prev,
-                COUNT(*) FILTER (WHERE period = 'current' AND is_risk = true) as risks_open_curr,
-                COUNT(*) FILTER (WHERE period = 'previous' AND is_risk = true) as risks_open_prev
-            FROM komponenty
-        """)
-        kpi_raw = cursor.fetchone()
-        
-        kpi = {
-            "komponenty_count_curr": kpi_raw.get('komponenty_count_curr', 0) or 0,
-            "komponenty_count_prev": kpi_raw.get('komponenty_count_prev', 0) or 0,
-            "avg_progress_curr": float(kpi_raw.get('avg_progress_curr', 0) or 0),
-            "avg_progress_prev": float(kpi_raw.get('avg_progress_prev', 0) or 0),
-            "risks_open_curr": kpi_raw.get('risks_open_curr', 0) or 0,
-            "risks_open_prev": kpi_raw.get('risks_open_prev', 0) or 0,
-        }
-        
-        # 2. Статусы компонентов (для pie chart)
-        cursor.execute("""
-            SELECT status, COUNT(*) as count
-            FROM komponenty
-            WHERE period = 'current'
-            GROUP BY status
-            ORDER BY count DESC
-        """)
-        pie_status = cursor.fetchall()
-        
-        # 3. Выпуск КД по месяцам (для line chart)
-        cursor.execute("""
-            SELECT 
-                DATE_TRUNC('month', data_vypuska) as data_vypuska,
-                COUNT(*) as count,
-                SUM(COUNT(*)) OVER (ORDER BY DATE_TRUNC('month', data_vypuska)) as cum
-            FROM konstruktorskie_dokumenty
-            GROUP BY DATE_TRUNC('month', data_vypuska)
-            ORDER BY data_vypuska
-        """)
-        kdocs_month_raw = cursor.fetchall()
-        kdocs_month = [
-            {
-                "data_vypuska": row['data_vypuska'].strftime('%Y-%m-%d'),
-                "count": row['count'],
-                "cum": row['cum']
-            }
-            for row in kdocs_month_raw
-        ]
-        
-        # 4. Топ поставщики (для bar chart)
-        cursor.execute("""
-            SELECT 
-                k.kompaniya_id,
-                ko.nazvanie as nazvanie_kompanii,
-                COUNT(*) as components
-            FROM komponenty k
-            JOIN kompanii ko ON k.kompaniya_id = ko.id
-            WHERE k.period = 'current'
-            GROUP BY k.kompaniya_id, ko.nazvanie
-            ORDER BY components DESC
-            LIMIT 7
-        """)
-        top_suppliers = cursor.fetchall()
-        
-        # 5. Heatmap данные (риски)
-        cursor.execute("""
-            SELECT DISTINCT rol FROM kompanii ORDER BY rol
-        """)
-        roles = [row['rol'] for row in cursor.fetchall()]
-        
-        cursor.execute("""
-            SELECT DISTINCT kategoriya FROM riski ORDER BY kategoriya
-        """)
-        categories = [row['kategoriya'] for row in cursor.fetchall()]
-        
-        cursor.execute("""
-            SELECT 
-                ko.rol,
-                r.kategoriya as kategoriya_riska,
-                COUNT(*) as cnt
-            FROM riski r
-            JOIN komponenty k ON r.komponent_id = k.id
-            JOIN kompanii ko ON k.kompaniya_id = ko.id
-            WHERE r.veroyatnost > 0.3
-            GROUP BY ko.rol, r.kategoriya
-        """)
-        heat_cells = cursor.fetchall()
-        
-        heat = {
-            "roles": roles,
-            "categories": categories,
-            "cells": heat_cells
-        }
-        
-        # 6. Gantt данные
-        cursor.execute("""
-            SELECT 
-                CONCAT('T', k.id, '_', ko.id, '_', ko.rol) as id,
-                CONCAT(k.nazvanie, ' #', k.id, ' — ', ko.rol) as name,
-                k.data_start::text as start,
-                k.data_end::text as end,
-                k.progress,
-                CASE 
-                    WHEN k.progress = 100 THEN 'Done'
-                    WHEN k.progress > 50 THEN 'In Progress'
-                    ELSE 'At Risk'
-                END as status,
-                ko.nazvanie as owner
-            FROM komponenty k
-            JOIN kompanii ko ON k.kompaniya_id = ko.id
-            WHERE k.period = 'current' AND k.data_start IS NOT NULL
-            ORDER BY k.data_start
-        """)
-        gantt = cursor.fetchall()
-        
-        # 7. Поставщики по странам (для pie chart)
-        cursor.execute("""
-            SELECT 
-                strana,
+                CASE
+                    WHEN ido IS NULL THEN 'Не указан'
+                    WHEN ido < 50 THEN 'Низкий (<50)'
+                    WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                    WHEN ido < 85 THEN 'Средний (70-85)'
+                    ELSE 'Высокий (85+)'
+                END as ido_group,
                 COUNT(*) as count
-            FROM postavshchiki
-            WHERE aktivnyj = true
-            GROUP BY strana
-            ORDER BY count DESC
+            FROM company
+            GROUP BY 
+                CASE
+                    WHEN ido IS NULL THEN 'Не указан'
+                    WHEN ido < 50 THEN 'Низкий (<50)'
+                    WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                    WHEN ido < 85 THEN 'Средний (70-85)'
+                    ELSE 'Высокий (85+)'
+                END
+            ORDER BY 
+                CASE
+                    WHEN ido IS NULL THEN 0
+                    WHEN ido < 50 THEN 1
+                    WHEN ido < 70 THEN 2
+                    WHEN ido < 85 THEN 3
+                    ELSE 4
+                END
         """)
-        suppliers_by_country = cursor.fetchall()
-        
-        # 8. Риски по категориям (для bar chart)
+        ido_distribution = cursor.fetchall()
+
+        # 7. Распределение по размеру капитала
         cursor.execute("""
             SELECT 
-                kategoriya,
-                COUNT(*) FILTER (WHERE status = 'Открыт') as open_count,
-                COUNT(*) FILTER (WHERE status = 'В работе') as in_progress_count,
-                COUNT(*) FILTER (WHERE status = 'Закрыт') as closed_count,
-                COUNT(*) as total_count
-            FROM riski
-            GROUP BY kategoriya
-            ORDER BY total_count DESC
+                CASE
+                    WHEN authorized_capital IS NULL THEN 'Не указан'
+                    WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                    WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                    WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                    ELSE 'Свыше 100 млн'
+                END as capital_group,
+                COUNT(*) as count
+            FROM company
+            GROUP BY 
+                CASE
+                    WHEN authorized_capital IS NULL THEN 'Не указан'
+                    WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                    WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                    WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                    ELSE 'Свыше 100 млн'
+                END
+            ORDER BY 
+                CASE
+                    WHEN authorized_capital IS NULL THEN 0
+                    WHEN authorized_capital < 1000000 THEN 1
+                    WHEN authorized_capital < 10000000 THEN 2
+                    WHEN authorized_capital < 100000000 THEN 3
+                    ELSE 4
+                END
         """)
-        risks_by_category = cursor.fetchall()
-        
+        capital_distribution = cursor.fetchall()
+
+        # Формируем KPI
+        kpi = {
+            "total_companies": kpi_data.get('total_companies', 0) or 0,
+            "avg_ido": round(float(kpi_data.get('avg_ido', 0) or 0), 2),
+            "avg_ifr": round(float(kpi_data.get('avg_ifr', 0) or 0), 2),
+            "avg_ipd": round(float(kpi_data.get('avg_ipd', 0) or 0), 2),
+            "avg_capital": round(float(kpi_data.get('avg_capital', 0) or 0), 2),
+            "min_capital": round(float(kpi_data.get('min_capital', 0) or 0), 2),
+            "max_capital": round(float(kpi_data.get('max_capital', 0) or 0), 2),
+            "low_risk_count": kpi_data.get('low_risk_count', 0) or 0,
+            "medium_risk_count": kpi_data.get('medium_risk_count', 0) or 0,
+            "high_risk_count": kpi_data.get('high_risk_count', 0) or 0,
+            "critical_risk_count": kpi_data.get('critical_risk_count', 0) or 0
+        }
+
         # Метаданные
         meta = {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
             "currency": "₽"
         }
-        
+
         cursor.close()
         conn.close()
-        
+
         return {
             "kpi": kpi,
-            "pie_status": pie_status,
-            "kdocs_month": kdocs_month,
-            "top_suppliers": top_suppliers,
-            "heat": heat,
-            "gantt": gantt,
-            "suppliers_by_country": suppliers_by_country,
-            "risks_by_category": risks_by_category,
+            "companies_by_region": companies_by_region,
+            "companies_by_risk": companies_by_risk,
+            "top_companies_by_capital": top_companies_by_capital,
+            "risk_capital_correlation": risk_capital_correlation,
+            "ido_distribution": ido_distribution,
+            "capital_distribution": capital_distribution,
             "meta": meta
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database query error: {str(e)}")
+        print(f"Database error: {e}")
+        return {
+            "kpi": {
+                "total_companies": 0, "avg_ido": 0, "avg_ifr": 0, "avg_ipd": 0,
+                "avg_capital": 0, "min_capital": 0, "max_capital": 0,
+                "low_risk_count": 0, "medium_risk_count": 0, "high_risk_count": 0, "critical_risk_count": 0
+            },
+            "companies_by_region": [],
+            "companies_by_risk": [],
+            "top_companies_by_capital": [],
+            "risk_capital_correlation": [],
+            "ido_distribution": [],
+            "capital_distribution": [],
+            "meta": {"generated_at": datetime.now().isoformat(), "currency": "₽", "error": str(e)}
+        }
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

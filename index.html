@@ -1,332 +1,269 @@
-
-<!doctype html>
-<html lang="ru" data-theme="light">
-<!-- Version: 2025-10-21-v5 -->
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Дашборд контролера 🚆</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt/dist/frappe-gantt.css">
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дашборд компаний</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
   :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
   [data-theme="light"]{--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
+  *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--c-bg);color:var(--c-text)}
-  .container{max-width:1280px;margin:0 auto;padding:16px}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .brand{display:flex;gap:10px;align-items:center}
-  .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(45deg,var(--c-teal),var(--c-blue))}
-  .filters, .kpis, .grid{display:grid;gap:12px}
-  .filters{grid-template-columns: repeat(12, 1fr); position:sticky;top:0;background:var(--c-bg);padding:12px 0;z-index:10}
-  .filters .card{grid-column: span 3}
-  .kpis{grid-template-columns: repeat(12, 1fr)}
-  .kpis .card{grid-column: span 4}
-  .grid{grid-template-columns: repeat(12, 1fr)}
+  .container{max-width:1400px;margin:0 auto;padding:20px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+  .title{font-size:32px;font-weight:700;background:linear-gradient(90deg,var(--c-teal),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .controls{display:flex;gap:12px;align-items:center}
   .card{background:var(--c-card);border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:16px}
-  .title{font-weight:800;margin:0 0 4px 0}
-  .muted{opacity:.7;font-size:12px}
-  .kpi-value{font-size:32px;font-weight:800}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+  .kpi-card{text-align:center;padding:20px}
+  .kpi-value{font-size:28px;font-weight:700;color:var(--c-teal);margin-bottom:4px}
+  .kpi-label{font-size:14px;color:var(--c-text);opacity:0.7}
+  .delta{font-size:12px;margin-top:4px}
   .delta.up{color:var(--c-teal)} .delta.down{color:var(--c-red)}
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px}
+  .chart-card{min-height:400px}
+  .chart-title{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--c-text)}
+  .chart-container{width:100%;height:350px}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px; background:rgba(37,99,235,.12); color:var(--c-blue)}
-  .row-6{grid-column: span 6} .row-12{grid-column: span 12} .row-4{grid-column: span 4} .row-8{grid-column: span 8}
-  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
   select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
   .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
   .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
-  .legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-</style>
+  </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <div class="brand"><div class="dot"></div><h2 class="title">Дашборд контролера <span class="accent">🚆</span></h2></div>
-    <div class="toolbar">
-      <button id="themeBtn">🌙 Тёмная/Светлая</button>
-      <button id="resetBtn">↺ Сбросить фильтры</button>
-    </div>
-  </header>
-
-  <section class="filters">
-    <div class="card"><div class="muted">Период</div><select id="period">
-      <option value="qtr">Квартал</option><option value="mon" selected>Месяц</option><option value="yr">Год</option>
-    </select></div>
-    <div class="card"><div class="muted">Статус компонента</div><select id="status"></select></div>
-    <div class="card"><div class="muted">Роль компании</div><select id="role"></select></div>
-    <div class="card"><div class="muted">Сравнение</div><select id="compare"><option value="none">Нет</option><option value="pop">PoP</option><option value="yoy">YoY</option></select></div>
-  </section>
-
-  <section class="kpis">
-    <div class="card">
-      <div class="muted">Компоненты</div>
-      <div class="kpi-value" id="kpi-components">—</div>
-      <div class="muted">Δ к пред. периоду: <span id="kpi-components-delta" class="delta">—</span></div>
-    </div>
-    <div class="card">
-      <div class="muted">Средняя готовность договоров</div>
-      <div class="kpi-value" id="kpi-progress">—</div>
-      <div class="muted">Δ к пред. периоду: <span id="kpi-progress-delta" class="delta">—</span></div>
-    </div>
-    <div class="card">
-      <div class="muted">Риски (P&gt;0.3)</div>
-      <div class="kpi-value" id="kpi-risks">—</div>
-      <div class="muted">Δ к пред. периоду: <span id="kpi-risks-delta" class="delta">—</span></div>
-    </div>
-  </section>
-
-  <section class="grid" style="margin-top:12px;">
-    <div class="card row-6">
-      <div class="toolbar"><strong>Доли по статусам компонентов</strong><span class="pill">пайчарт</span></div>
-      <div id="pie" style="height:320px;"></div>
-    </div>
-    <div class="card row-6">
-      <div class="toolbar"><strong>Топ-7 поставщиков по числу компонентов</strong><span class="pill">барчарт</span></div>
-      <div id="bar" style="height:320px;"></div>
-    </div>
-
-    <div class="card row-12">
-      <div class="toolbar"><strong>Диаграмма Ганта: разработка/поставка компонентов</strong><span class="pill">Gantt</span></div>
-      <svg id="gantt" style="width:100%;height:380px;"></svg>
-      <div class="muted">Цвет статуса: <span class="legend-dot" style="background:#10b981"></span>Done <span class="legend-dot" style="background:#f59e0b"></span>In&nbsp;Progress <span class="legend-dot" style="background:#ef4444"></span>At&nbsp;Risk</div>
-    </div>
-
-    <div class="card row-6">
-      <div class="toolbar"><strong>Поставщики по странам</strong><span class="pill">пайчарт</span></div>
-      <div id="pieCountries" style="height:320px;"></div>
-    </div>
-    <div class="card row-6">
-      <div class="toolbar"><strong>Статистика поставщиков</strong><span class="pill">инфо</span></div>
-      <div id="suppliersInfo" style="padding:20px;">
-        <div class="muted">Всего активных поставщиков</div>
-        <div class="kpi-value" id="totalSuppliers">—</div>
-        <div style="margin-top:16px;">
-          <div class="muted">🌍 Представлено стран: <strong id="countriesCount">—</strong></div>
-        </div>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">Дашборд компаний</h1>
+      <div class="controls">
+        <button id="themeBtn">🌙</button>
+        <button id="refreshBtn">🔄</button>
       </div>
     </div>
 
-    <div class="card row-6">
-      <div class="toolbar"><strong>Риски по категориям</strong><span class="pill">барчарт</span></div>
-      <div id="barRisks" style="height:320px;"></div>
-    </div>
-    <div class="card row-6">
-      <div class="toolbar"><strong>Статус рисков</strong><span class="pill">инфо</span></div>
-      <div id="risksInfo" style="padding:20px;">
-        <div class="muted">Всего рисков в системе</div>
-        <div class="kpi-value" id="totalRisks">—</div>
-        <div style="margin-top:16px;">
-          <div class="muted">🔴 Открыто: <strong id="openRisks">—</strong></div>
-          <div class="muted">🟡 В работе: <strong id="inProgressRisks">—</strong></div>
-          <div class="muted">🟢 Закрыто: <strong id="closedRisks">—</strong></div>
-        </div>
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-total">0</div>
+        <div class="kpi-label">Всего компаний</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-avg-ido">0</div>
+        <div class="kpi-label">Средний ИДО</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-avg-ifr">0</div>
+        <div class="kpi-label">Средний ИФР</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-avg-ipd">0</div>
+        <div class="kpi-label">Средний ИПД</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-avg-capital">0</div>
+        <div class="kpi-label">Средний капитал</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-low-risk">0</div>
+        <div class="kpi-label">Низкий риск</div>
       </div>
     </div>
 
-    <div class="card row-6">
-      <div class="toolbar"><strong>Выпущено КД по месяцам</strong><span class="pill">время</span></div>
-      <div id="line" style="height:300px;"></div>
-    </div>
-    <div class="card row-6">
-      <div class="toolbar"><strong>Матрица: Роль компании × Категория риска</strong><span class="pill">heatmap</span></div>
-      <div id="heat" style="height:300px;"></div>
-    </div>
-  </section>
+    <!-- Charts -->
+    <div class="charts-grid">
+      <!-- Распределение по регионам -->
+      <div class="card chart-card">
+        <div class="chart-title">Компании по регионам</div>
+        <div id="regionChart" class="chart-container"></div>
+      </div>
 
-  <footer class="muted" style="margin-top:16px">₽, Москва · Бирюзовый/Синий/Красный</footer>
-  
-  <!-- Индикатор загрузки -->
+      <!-- Распределение по рискам -->
+      <div class="card chart-card">
+        <div class="chart-title">Распределение по рискам</div>
+        <div id="riskChart" class="chart-container"></div>
+      </div>
+
+      <!-- Топ компаний по капиталу -->
+      <div class="card chart-card">
+        <div class="chart-title">Топ-10 компаний по капиталу</div>
+        <div id="capitalChart" class="chart-container"></div>
+      </div>
+
+      <!-- Корреляция риск-капитал -->
+      <div class="card chart-card">
+        <div class="chart-title">Корреляция риск-капитал</div>
+        <div id="correlationChart" class="chart-container"></div>
+      </div>
+
+      <!-- Распределение ИДО -->
+      <div class="card chart-card">
+        <div class="chart-title">Распределение по ИДО</div>
+        <div id="idoChart" class="chart-container"></div>
+      </div>
+
+      <!-- Распределение по размеру капитала -->
+      <div class="card chart-card">
+        <div class="chart-title">Распределение по размеру капитала</div>
+        <div id="capitalSizeChart" class="chart-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
   <div id="loading" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;">
       <div style="font-size:48px;margin-bottom:16px;">⏳</div>
       <div style="font-size:18px;font-weight:600;">Загрузка данных...</div>
     </div>
   </div>
-</div>
+
 <script>
-// Конфигурация API
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000/api' 
-  : '/400/api'; // Прокси через nginx для /400/api/
+let DATA = {};
 
-let DATA = null; // Данные загружаются из API
-
-// Функция загрузки данных из API
 async function loadData() {
   try {
-    const response = await fetch(`${API_URL}/dashboard-data`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const response = await fetch('/400/api/dashboard-data');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
     DATA = await response.json();
-    return DATA;
+    console.log('Данные загружены:', DATA);
   } catch (error) {
-    console.error('Ошибка загрузки данных из API:', error);
-    // Fallback: используем тестовые данные если API недоступен
-    DATA = {"kpi": {"komponenty_count_curr": 28, "komponenty_count_prev": 0, "avg_progress_curr": 65.2, "avg_progress_prev": 61.85373359260551, "risks_open_curr": 13, "risks_open_prev": 13}, "pie_status": [{"status": "Тестирование", "count": 7}, {"status": "Поставка", "count": 6}, {"status": "Проектирование", "count": 5}, {"status": "Изготовление", "count": 4}, {"status": "Интеграция", "count": 3}, {"status": "В эксплуатации", "count": 2}, {"status": "Закупка", "count": 1}], "kdocs_month": [{"data_vypuska": "2024-04-01", "count": 5, "cum": 5}, {"data_vypuska": "2024-05-01", "count": 1, "cum": 6}, {"data_vypuska": "2024-06-01", "count": 2, "cum": 8}, {"data_vypuska": "2024-07-01", "count": 1, "cum": 9}, {"data_vypuska": "2024-08-01", "count": 1, "cum": 10}, {"data_vypuska": "2024-09-01", "count": 1, "cum": 11}, {"data_vypuska": "2024-10-01", "count": 1, "cum": 12}, {"data_vypuska": "2024-11-01", "count": 3, "cum": 15}, {"data_vypuska": "2024-12-01", "count": 1, "cum": 16}, {"data_vypuska": "2025-01-01", "count": 1, "cum": 17}, {"data_vypuska": "2025-03-01", "count": 1, "cum": 18}], "top_suppliers": [{"kompaniya_id": 13, "nazvanie_kompanii": "ООО «Компания 13»", "components": 8}, {"kompaniya_id": 8, "nazvanie_kompanii": "ООО «Компания 8»", "components": 7}, {"kompaniya_id": 9, "nazvanie_kompanii": "ООО «Компания 9»", "components": 7}, {"kompaniya_id": 14, "nazvanie_kompanii": "ООО «Компания 14»", "components": 6}], "heat": {"roles": ["Заказчик", "Исполнитель", "Поставщик", "Проектировщик", "Сервис"], "categories": ["Поставки", "Сроки", "Технический", "Финансовый", "Юридический"], "cells": [{"rol": "Заказчик", "kategoriya_riska": "Поставки", "cnt": 1}, {"rol": "Заказчик", "kategoriya_riska": "Технический", "cnt": 1}, {"rol": "Заказчик", "kategoriya_riska": "Финансовый", "cnt": 3}, {"rol": "Исполнитель", "kategoriya_riska": "Поставки", "cnt": 1}, {"rol": "Исполнитель", "kategoriya_riska": "Сроки", "cnt": 1}, {"rol": "Исполнитель", "kategoriya_riska": "Технический", "cnt": 1}, {"rol": "Исполнитель", "kategoriya_riska": "Финансовый", "cnt": 1}, {"rol": "Поставщик", "kategoriya_riska": "Поставки", "cnt": 2}, {"rol": "Поставщик", "kategoriya_riska": "Финансовый", "cnt": 3}, {"rol": "Поставщик", "kategoriya_riska": "Юридический", "cnt": 2}, {"rol": "Проектировщик", "kategoriya_riska": "Поставки", "cnt": 1}, {"rol": "Проектировщик", "kategoriya_riska": "Сроки", "cnt": 1}, {"rol": "Проектировщик", "kategoriya_riska": "Технический", "cnt": 2}, {"rol": "Проектировщик", "kategoriya_riska": "Финансовый", "cnt": 5}, {"rol": "Проектировщик", "kategoriya_riska": "Юридический", "cnt": 1}, {"rol": "Сервис", "kategoriya_riska": "Поставки", "cnt": 1}]}, "gantt": [{"id": "T2_1_Разработчик", "name": "Колёсные пары #1 — Разработчик", "start": "2024-06-05", "end": "2024-10-20", "progress": 63.5, "status": "At Risk", "owner": "ООО «Компания 2»"}, {"id": "T13_1_Поставщик", "name": "Колёсные пары #1 — Поставщик", "start": "2024-06-12", "end": "2024-10-20", "progress": 63.5, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T5_2_Разработчик", "name": "Пневматика #2 — Разработчик", "start": "2024-09-05", "end": "2025-01-07", "progress": 49.8, "status": "At Risk", "owner": "ООО «Компания 5»"}, {"id": "T8_2_Поставщик", "name": "Пневматика #2 — Поставщик", "start": "2024-09-12", "end": "2025-01-07", "progress": 49.8, "status": "At Risk", "owner": "ООО «Компания 8»"}, {"id": "T6_3_Разработчик", "name": "Системы связи #3 — Разработчик", "start": "2025-03-13", "end": "2025-04-12", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 6»"}, {"id": "T13_3_Поставщик", "name": "Системы связи #3 — Поставщик", "start": "2025-03-20", "end": "2025-04-12", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T12_4_Разработчик", "name": "Интерьер #4 — Разработчик", "start": "2025-01-01", "end": "2025-03-31", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 12»"}, {"id": "T9_4_Поставщик", "name": "Интерьер #4 — Поставщик", "start": "2025-01-08", "end": "2025-03-31", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 9»"}, {"id": "T2_5_Разработчик", "name": "Электроника #5 — Разработчик", "start": "2024-10-07", "end": "2024-12-23", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 2»"}, {"id": "T8_5_Поставщик", "name": "Электроника #5 — Поставщик", "start": "2024-10-14", "end": "2024-12-23", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 8»"}, {"id": "T5_6_Разработчик", "name": "Интерьер #6 — Разработчик", "start": "2025-04-28", "end": "2025-10-22", "progress": 63.5, "status": "In Progress", "owner": "ООО «Компания 5»"}, {"id": "T8_6_Поставщик", "name": "Интерьер #6 — Поставщик", "start": "2025-05-05", "end": "2025-10-22", "progress": 63.5, "status": "In Progress", "owner": "ООО «Компания 8»"}, {"id": "T12_7_Разработчик", "name": "Колёсные пары #7 — Разработчик", "start": "2024-07-24", "end": "2024-08-30", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 12»"}, {"id": "T14_7_Поставщик", "name": "Колёсные пары #7 — Поставщик", "start": "2024-07-31", "end": "2024-08-30", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 14»"}, {"id": "T2_8_Разработчик", "name": "HVAC #8 — Разработчик", "start": "2025-03-17", "end": "2025-04-15", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 2»"}, {"id": "T13_8_Поставщик", "name": "HVAC #8 — Поставщик", "start": "2025-03-24", "end": "2025-04-15", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T2_9_Разработчик", "name": "Тормозная система #9 — Разработчик", "start": "2024-11-05", "end": "2025-02-22", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 2»"}, {"id": "T9_9_Поставщик", "name": "Тормозная система #9 — Поставщик", "start": "2024-11-12", "end": "2025-02-22", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 9»"}, {"id": "T4_10_Разработчик", "name": "Колёсные пары #10 — Разработчик", "start": "2024-05-22", "end": "2024-10-25", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 4»"}, {"id": "T8_10_Поставщик", "name": "Колёсные пары #10 — Поставщик", "start": "2024-05-29", "end": "2024-10-25", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 8»"}, {"id": "T1_11_Разработчик", "name": "Двери #11 — Разработчик", "start": "2024-09-03", "end": "2024-12-19", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 1»"}, {"id": "T14_11_Поставщик", "name": "Двери #11 — Поставщик", "start": "2024-09-10", "end": "2024-12-19", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 14»"}, {"id": "T3_12_Разработчик", "name": "Двери #12 — Разработчик", "start": "2025-04-13", "end": "2025-06-14", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 3»"}, {"id": "T14_12_Поставщик", "name": "Двери #12 — Поставщик", "start": "2025-04-20", "end": "2025-06-14", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 14»"}, {"id": "T12_13_Разработчик", "name": "Системы связи #13 — Разработчик", "start": "2025-01-27", "end": "2025-06-26", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 12»"}, {"id": "T13_13_Поставщик", "name": "Системы связи #13 — Поставщик", "start": "2025-02-03", "end": "2025-06-26", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T1_14_Разработчик", "name": "Двери #14 — Разработчик", "start": "2025-05-01", "end": "2025-06-04", "progress": 81.6, "status": "At Risk", "owner": "ООО «Компания 1»"}, {"id": "T14_14_Поставщик", "name": "Двери #14 — Поставщик", "start": "2025-05-08", "end": "2025-06-04", "progress": 81.6, "status": "At Risk", "owner": "ООО «Компания 14»"}, {"id": "T12_15_Разработчик", "name": "Двери #15 — Разработчик", "start": "2024-06-03", "end": "2024-07-27", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 12»"}, {"id": "T8_15_Поставщик", "name": "Двери #15 — Поставщик", "start": "2024-06-10", "end": "2024-07-27", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 8»"}, {"id": "T12_16_Разработчик", "name": "Пневматика #16 — Разработчик", "start": "2024-11-07", "end": "2024-12-31", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 12»"}, {"id": "T8_16_Поставщик", "name": "Пневматика #16 — Поставщик", "start": "2024-11-14", "end": "2024-12-31", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 8»"}, {"id": "T1_17_Разработчик", "name": "Тормозная система #17 — Разработчик", "start": "2024-12-14", "end": "2025-01-18", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 1»"}, {"id": "T9_17_Поставщик", "name": "Тормозная система #17 — Поставщик", "start": "2024-12-21", "end": "2025-01-18", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 9»"}, {"id": "T3_18_Разработчик", "name": "Двери #18 — Разработчик", "start": "2024-08-08", "end": "2024-10-14", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 3»"}, {"id": "T8_18_Поставщик", "name": "Двери #18 — Поставщик", "start": "2024-08-15", "end": "2024-10-14", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 8»"}, {"id": "T4_19_Разработчик", "name": "Пневматика #19 — Разработчик", "start": "2024-08-19", "end": "2024-11-18", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 4»"}, {"id": "T9_19_Поставщик", "name": "Пневматика #19 — Поставщик", "start": "2024-08-26", "end": "2024-11-18", "progress": 66.1, "status": "At Risk", "owner": "ООО «Компания 9»"}, {"id": "T2_20_Разработчик", "name": "Сигнализация #20 — Разработчик", "start": "2024-06-09", "end": "2024-07-05", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 2»"}, {"id": "T14_20_Поставщик", "name": "Сигнализация #20 — Поставщик", "start": "2024-06-16", "end": "2024-07-05", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 14»"}, {"id": "T3_21_Разработчик", "name": "Пневматика #21 — Разработчик", "start": "2024-08-09", "end": "2024-10-16", "progress": 46.1, "status": "At Risk", "owner": "ООО «Компания 3»"}, {"id": "T13_21_Поставщик", "name": "Пневматика #21 — Поставщик", "start": "2024-08-16", "end": "2024-10-16", "progress": 46.1, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T2_22_Разработчик", "name": "Тяговая система #22 — Разработчик", "start": "2024-12-23", "end": "2025-04-27", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 2»"}, {"id": "T13_22_Поставщик", "name": "Тяговая система #22 — Поставщик", "start": "2024-12-30", "end": "2025-04-27", "progress": 57.2, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T3_23_Разработчик", "name": "Тормозная система #23 — Разработчик", "start": "2025-05-01", "end": "2025-07-01", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 3»"}, {"id": "T13_23_Поставщик", "name": "Тормозная система #23 — Поставщик", "start": "2025-05-08", "end": "2025-07-01", "progress": 11.7, "status": "At Risk", "owner": "ООО «Компания 13»"}, {"id": "T2_24_Разработчик", "name": "Пневматика #24 — Разработчик", "start": "2024-10-12", "end": "2025-02-17", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 2»"}, {"id": "T14_24_Поставщик", "name": "Пневматика #24 — Поставщик", "start": "2024-10-19", "end": "2025-02-17", "progress": 100.0, "status": "Done", "owner": "ООО «Компания 14»"}, {"id": "T4_25_Разработчик", "name": "Сигнализация #25 — Разработчик", "start": "2024-05-26", "end": "2024-11-16", "progress": 49.8, "status": "At Risk", "owner": "ООО «Компания 4»"}, {"id": "T9_25_Поставщик", "name": "Сигнализация #25 — Поставщик", "start": "2024-06-02", "end": "2024-11-16", "progress": 49.8, "status": "At Risk", "owner": "ООО «Компания 9»"}, {"id": "T6_26_Разработчик", "name": "Тормозная система #26 — Разработчик", "start": "2025-04-17", "end": "2025-07-27", "progress": 54.1, "status": "At Risk", "owner": "ООО «Компания 6»"}, {"id": "T9_26_Поставщик", "name": "Тормозная система #26 — Поставщик", "start": "2025-04-24", "end": "2025-07-27", "progress": 54.1, "status": "At Risk", "owner": "ООО «Компания 9»"}, {"id": "T12_27_Разработчик", "name": "Тормозная система #27 — Разработчик", "start": "2025-02-07", "end": "2025-07-09", "progress": 74.1, "status": "At Risk", "owner": "ООО «Компания 12»"}, {"id": "T9_27_Поставщик", "name": "Тормозная система #27 — Поставщик", "start": "2025-02-14", "end": "2025-07-09", "progress": 74.1, "status": "At Risk", "owner": "ООО «Компания 9»"}, {"id": "T5_28_Разработчик", "name": "HVAC #28 — Разработчик", "start": "2025-03-08", "end": "2025-06-06", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 5»"}, {"id": "T13_28_Поставщик", "name": "HVAC #28 — Поставщик", "start": "2025-03-15", "end": "2025-06-06", "progress": 78.6, "status": "At Risk", "owner": "ООО «Компания 13»"}], "meta": {"generated_at": "2025-10-21 08:47:57.440623", "currency": "₽"}};
-    return DATA;
+    console.error('Ошибка загрузки данных:', error);
+    throw error;
   }
 }
 
-function fmtDelta(curr, prev) { 
-  const diff = curr - prev; const pct = prev ? (diff/prev*100) : 0;
-  const cls = diff>=0 ? 'up' : 'down';
-  const arrow = diff>=0 ? '↑' : '↓';
-  return '<span class="'+cls+'">'+arrow+' '+diff.toFixed(1)+' ('+pct.toFixed(1)+'%)</span>';
-}
 function setKPI() {
-  document.getElementById('kpi-components').innerText = (DATA.kpi?.komponenty_count_curr || 0).toLocaleString('ru-RU');
-  document.getElementById('kpi-components-delta').innerHTML = fmtDelta(DATA.kpi?.komponenty_count_curr || 0, DATA.kpi?.komponenty_count_prev || 0);
-  document.getElementById('kpi-progress').innerText = (DATA.kpi?.avg_progress_curr || 0).toFixed(1) + '%';
-  document.getElementById('kpi-progress-delta').innerHTML = fmtDelta(DATA.kpi?.avg_progress_curr || 0, DATA.kpi?.avg_progress_prev || 0);
-  document.getElementById('kpi-risks').innerText = (DATA.kpi?.risks_open_curr || 0).toLocaleString('ru-RU');
-  document.getElementById('kpi-risks-delta').innerHTML = fmtDelta(DATA.kpi?.risks_open_curr || 0, DATA.kpi?.risks_open_prev || 0);
+  document.getElementById('kpi-total').innerText = (DATA.kpi?.total_companies || 0).toLocaleString('ru-RU');
+  document.getElementById('kpi-avg-ido').innerText = (DATA.kpi?.avg_ido || 0).toFixed(1);
+  document.getElementById('kpi-avg-ifr').innerText = (DATA.kpi?.avg_ifr || 0).toFixed(1);
+  document.getElementById('kpi-avg-ipd').innerText = (DATA.kpi?.avg_ipd || 0).toFixed(1);
+  document.getElementById('kpi-avg-capital').innerText = ((DATA.kpi?.avg_capital || 0) / 1000000).toFixed(1) + 'М';
+  document.getElementById('kpi-low-risk').innerText = (DATA.kpi?.low_risk_count || 0).toLocaleString('ru-RU');
 }
-function initFilters(){
-  const st = [...new Set((DATA.pie_status || []).map(x=>x.status))];
-  const roles = [...new Set((DATA.heat?.cells || []).map(x=>x.rol))];
-  const sSel = document.getElementById('status');
-  sSel.innerHTML = '<option value="all">Все</option>' + st.map(x=>`<option>${x}</option>`).join('');
-  const rSel = document.getElementById('role');
-  rSel.innerHTML = '<option value="all">Все</option>' + roles.map(x=>`<option>${x}</option>`).join('');
-}
-function pieChart(){
-  const el = echarts.init(document.getElementById('pie'));
-  const data = (DATA.pie_status || []).slice(0);
-  data.sort((a,b)=>(b.count || 0)-(a.count || 0));
-  const top = data.slice(0,6);
-  const other = data.slice(6).reduce((acc,x)=>acc+(x.count || 0),0);
-  if(other>0) top.push({status:'Прочее', count:other});
+
+function regionChart() {
+  const el = echarts.init(document.getElementById('regionChart'));
+  const data = DATA.companies_by_region || [];
   el.setOption({
-    tooltip:{trigger:'item'},
-    series:[{type:'pie', radius:['40%','70%'], itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},
-             data: top.map(x=>({name:x.status || 'Неизвестно', value:x.count || 0}))}]
-  });
-  window.addEventListener('resize',()=>el.resize());
-}
-function pieCountriesChart(){
-  const el = echarts.init(document.getElementById('pieCountries'));
-  const data = DATA.suppliers_by_country || [];
-  const total = data.reduce((acc,x)=>acc+(x.count || 0),0);
-  
-  // Обновить статистику
-  document.getElementById('totalSuppliers').innerText = total;
-  document.getElementById('countriesCount').innerText = data.length;
-  
-  el.setOption({
-    tooltip:{trigger:'item', formatter: '{b}: {c} ({d}%)'},
-    legend:{orient:'vertical', left:'left', top:'middle', textStyle:{fontSize:11}},
-    series:[{
-      type:'pie', 
-      radius:'65%',
-      center:['60%','50%'],
-      itemStyle:{borderRadius:8,borderColor:'#fff',borderWidth:2},
-      label:{formatter:'{b}\n{c}', fontSize:11},
-      data: data.map(x=>({name:x.strana, value:x.count}))
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
+      data: data.map(x => ({ name: x.region || 'Неизвестно', value: x.count || 0 }))
     }]
   });
-  window.addEventListener('resize',()=>el.resize());
+  window.addEventListener('resize', () => el.resize());
 }
-function barChart(){
-  const el = echarts.init(document.getElementById('bar'));
-  const data = DATA.top_suppliers || [];
-  el.setOption({
-    tooltip:{trigger:'axis'},
-    xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii || 'Неизвестно')},
-    yAxis:{type:'value'},
-    series:[{type:'bar', data:data.map(x=>x.components || 0)}]
-  });
-  window.addEventListener('resize',()=>el.resize());
-}
-function barRisksChart(){
-  const el = echarts.init(document.getElementById('barRisks'));
-  const data = DATA.risks_by_category || [];
-  
-  // Подсчитаем статистику
-  let totalRisks = 0, openRisks = 0, inProgressRisks = 0, closedRisks = 0;
-  data.forEach(item => {
-    totalRisks += (item.total_count || 0);
-    openRisks += (item.open_count || 0);
-    inProgressRisks += (item.in_progress_count || 0);
-    closedRisks += (item.closed_count || 0);
-  });
-  
-  // Обновим статистику
-  document.getElementById('totalRisks').innerText = totalRisks;
-  document.getElementById('openRisks').innerText = openRisks;
-  document.getElementById('inProgressRisks').innerText = inProgressRisks;
-  document.getElementById('closedRisks').innerText = closedRisks;
-  
-  // Отрисуем график
-  el.setOption({
-    tooltip:{trigger:'axis', axisPointer:{type:'shadow'}},
-    legend:{data:['Открыт', 'В работе', 'Закрыт']},
-    xAxis:{type:'category', data:data.map(x=>x.kategoriya || 'Неизвестно')},
-    yAxis:{type:'value'},
-    series:[
-      {name:'Открыт', type:'bar', stack:'total', data:data.map(x=>x.open_count || 0), itemStyle:{color:'#ef4444'}},
-      {name:'В работе', type:'bar', stack:'total', data:data.map(x=>x.in_progress_count || 0), itemStyle:{color:'#f59e0b'}},
-      {name:'Закрыт', type:'bar', stack:'total', data:data.map(x=>x.closed_count || 0), itemStyle:{color:'#10b981'}}
-    ]
-  });
-  window.addEventListener('resize',()=>el.resize());
-}
-function lineChart(){
-  const el = echarts.init(document.getElementById('line'));
-  const d = DATA.kdocs_month || [];
-  el.setOption({
-    tooltip:{trigger:'axis'},
-    xAxis:{type:'category', data:d.map(x=>x.data_vypuska || '')},
-    yAxis:{type:'value'},
-    series:[{type:'line', smooth:true, data:d.map(x=>x.cum || 0)}]
-  });
-  window.addEventListener('resize',()=>el.resize());
-}
-function heatChart(){
-  const el = echarts.init(document.getElementById('heat'));
-  const roles = DATA.heat?.roles || [];
-  const cats = DATA.heat?.categories || [];
-  const m = new Map((DATA.heat?.cells || []).map(x=>[x.rol+'|'+x.kategoriya_riska, x.cnt]));
-  const seriesData = [];
-  roles.forEach((r,ri)=>cats.forEach((c,ci)=>seriesData.push([ci,ri,m.get(r+'|'+c)||0])));
-  el.setOption({
-    tooltip:{}, grid:{left:70,bottom:30,top:20,right:20},
-    xAxis:{type:'category', data:cats},
-    yAxis:{type:'category', data:roles},
-    visualMap:{min:0,max:Math.max(...seriesData.map(x=>x[2])), calculable:true, orient:'horizontal', left:'center', bottom:0},
-    series:[{type:'heatmap', data:seriesData}]
-  });
-  window.addEventListener('resize',()=>el.resize());
-}
-function ganttChart(){
-  const svg = document.getElementById('gantt');
-  const div = document.createElement('div');
-  div.id = 'ganttDiv'; div.style.width='100%'; div.style.height='360px';
-  svg.replaceWith(div);
-  const tasks = (DATA.gantt || []).map(t=>({
-    id: t.id || '', name: t.name || '', start: t.start || '', end: t.end || '', progress: t.progress || 0, custom_class: (t.status || '').replace(' ','').toLowerCase(), dependencies:''
-  }));
-  const gantt = new Gantt('#ganttDiv', tasks, {
-    view_mode: 'Month',
-    custom_popup_html: function(task){
-      const startDate = task._start ? task._start.toLocaleDateString('ru-RU') : 'Не указано';
-      const endDate = task._end ? task._end.toLocaleDateString('ru-RU') : 'Не указано';
-      return '<div class="details-container"><h5>'+task.name+'</h5><p>С '+startDate+' по '+endDate+'</p><p>Готовность: '+task.progress+'%</p></div>';
-    }
-  });
-  const style = document.createElement('style');
-  style.innerHTML = '.bar.progress{fill:#16BDCA}.bar.done{fill:#10b981}.bar.inprogress{fill:#f59e0b}.bar.atrisk{fill:#ef4444}';
-  document.head.appendChild(style);
-}
-document.getElementById('themeBtn').onclick = ()=>{
-  const h = document.documentElement;
-  h.setAttribute('data-theme', h.getAttribute('data-theme')==='light'?'dark':'light');
-};
-document.getElementById('resetBtn').onclick = ()=>{ document.getElementById('period').value='mon'; document.getElementById('status').value='all'; document.getElementById('role').value='all'; document.getElementById('compare').value='none'; };
 
-// Async инициализация дашборда
+function riskChart() {
+  const el = echarts.init(document.getElementById('riskChart'));
+  const data = DATA.companies_by_risk || [];
+  const colors = {
+    'Низкий': '#10b981',
+    'Средний': '#f59e0b', 
+    'Высокий': '#ef4444',
+    'Критический': '#dc2626'
+  };
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
+      data: data.map(x => ({ 
+        name: x.spark_risk || 'Неизвестно', 
+        value: x.count || 0,
+        itemStyle: { color: colors[x.spark_risk] || '#6b7280' }
+      }))
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function capitalChart() {
+  const el = echarts.init(document.getElementById('capitalChart'));
+  const data = DATA.top_companies_by_capital || [];
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.short_name || 'Неизвестно') },
+    yAxis: { type: 'value', name: 'Капитал (млн ₽)' },
+    series: [{
+      type: 'bar',
+      data: data.map(x => ((x.authorized_capital || 0) / 1000000).toFixed(1)),
+      itemStyle: { borderRadius: [4, 4, 0, 0] }
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function correlationChart() {
+  const el = echarts.init(document.getElementById('correlationChart'));
+  const data = DATA.risk_capital_correlation || [];
+  const colors = {
+    'Низкий': '#10b981',
+    'Средний': '#f59e0b',
+    'Высокий': '#ef4444', 
+    'Критический': '#dc2626'
+  };
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    xAxis: { type: 'value', name: 'Капитал (млн ₽)' },
+    yAxis: { type: 'value', name: 'ИДО' },
+    series: [{
+      type: 'scatter',
+      data: data.map(x => [
+        ((x.authorized_capital || 0) / 1000000).toFixed(1),
+        x.ido || 0,
+        x.short_name || 'Неизвестно',
+        x.spark_risk || 'Неизвестно'
+      ]),
+      symbolSize: 8,
+      itemStyle: {
+        color: function(params) {
+          return colors[params.data[3]] || '#6b7280';
+        }
+      }
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function idoChart() {
+  const el = echarts.init(document.getElementById('idoChart'));
+  const data = DATA.ido_distribution || [];
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    xAxis: { type: 'category', data: data.map(x => x.ido_group || 'Неизвестно') },
+    yAxis: { type: 'value' },
+    series: [{
+      type: 'bar',
+      data: data.map(x => x.count || 0),
+      itemStyle: { borderRadius: [4, 4, 0, 0] }
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function capitalSizeChart() {
+  const el = echarts.init(document.getElementById('capitalSizeChart'));
+  const data = DATA.capital_distribution || [];
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    xAxis: { type: 'category', data: data.map(x => x.capital_group || 'Неизвестно') },
+    yAxis: { type: 'value' },
+    series: [{
+      type: 'bar',
+      data: data.map(x => x.count || 0),
+      itemStyle: { borderRadius: [4, 4, 0, 0] }
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
 async function init() {
   try {
     console.log('Начинаем инициализацию...');
@@ -346,67 +283,51 @@ async function init() {
     }
     
     try {
-      console.log('Вызываем initFilters...');
-      initFilters(); 
-      console.log('initFilters выполнен');
+      console.log('Вызываем regionChart...');
+      regionChart(); 
+      console.log('regionChart выполнен');
     } catch (e) {
-      console.error('Ошибка в initFilters:', e);
+      console.error('Ошибка в regionChart:', e);
     }
     
     try {
-      console.log('Вызываем pieChart...');
-      pieChart(); 
-      console.log('pieChart выполнен');
+      console.log('Вызываем riskChart...');
+      riskChart();
+      console.log('riskChart выполнен');
     } catch (e) {
-      console.error('Ошибка в pieChart:', e);
+      console.error('Ошибка в riskChart:', e);
     }
     
     try {
-      console.log('Вызываем pieCountriesChart...');
-      pieCountriesChart();
-      console.log('pieCountriesChart выполнен');
+      console.log('Вызываем capitalChart...');
+      capitalChart(); 
+      console.log('capitalChart выполнен');
     } catch (e) {
-      console.error('Ошибка в pieCountriesChart:', e);
+      console.error('Ошибка в capitalChart:', e);
     }
     
     try {
-      console.log('Вызываем barChart...');
-      barChart(); 
-      console.log('barChart выполнен');
+      console.log('Вызываем correlationChart...');
+      correlationChart();
+      console.log('correlationChart выполнен');
     } catch (e) {
-      console.error('Ошибка в barChart:', e);
+      console.error('Ошибка в correlationChart:', e);
     }
     
     try {
-      console.log('Вызываем barRisksChart...');
-      barRisksChart();
-      console.log('barRisksChart выполнен');
+      console.log('Вызываем idoChart...');
+      idoChart(); 
+      console.log('idoChart выполнен');
     } catch (e) {
-      console.error('Ошибка в barRisksChart:', e);
+      console.error('Ошибка в idoChart:', e);
     }
     
     try {
-      console.log('Вызываем ganttChart...');
-      ganttChart(); 
-      console.log('ganttChart выполнен');
+      console.log('Вызываем capitalSizeChart...');
+      capitalSizeChart();
+      console.log('capitalSizeChart выполнен');
     } catch (e) {
-      console.error('Ошибка в ganttChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем lineChart...');
-      lineChart(); 
-      console.log('lineChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в lineChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем heatChart...');
-      heatChart();
-      console.log('heatChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в heatChart:', e);
+      console.error('Ошибка в capitalSizeChart:', e);
     }
     
     // Скрыть индикатор загрузки
@@ -418,6 +339,17 @@ async function init() {
     document.getElementById('loading').innerHTML = '<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+error.message+'</div></div>';
   }
 }
+
+// Обработчики событий
+document.getElementById('themeBtn').onclick = () => {
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+};
+
+document.getElementById('refreshBtn').onclick = () => {
+  document.getElementById('loading').style.display = 'flex';
+  init();
+};
 
 // Запуск при загрузке страницы
 init();
