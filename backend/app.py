@@ -27,7 +27,7 @@ app.add_middleware(
 )
 
 # Конфигурация базы данных
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/dashboard_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://tnb_user_1_vsm400_user:password@localhost:5432/tnb_user_1_vsm400")
 
 
 def get_db_connection():
