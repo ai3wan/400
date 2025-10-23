@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Дашборд компаний</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-  <style>
+<style>
   :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
   [data-theme="light"]{--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
   *{box-sizing:border-box}
@@ -30,16 +30,16 @@
   select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
   .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
   .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
-  </style>
+</style>
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <div class="header">
       <h1 class="title">Дашборд компаний</h1>
       <div class="controls">
         <button id="themeBtn">🌙</button>
         <button id="refreshBtn">🔄</button>
-      </div>
+    </div>
     </div>
 
     <!-- KPI Cards -->
@@ -47,23 +47,23 @@
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-total">0</div>
         <div class="kpi-label">Всего компаний</div>
-      </div>
+    </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-avg-ido">0</div>
         <div class="kpi-label">Средний ИДО</div>
-      </div>
+    </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-avg-ifr">0</div>
         <div class="kpi-label">Средний ИФР</div>
-      </div>
+    </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-avg-ipd">0</div>
         <div class="kpi-label">Средний ИПД</div>
-      </div>
+    </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-avg-capital">0</div>
         <div class="kpi-label">Средний капитал</div>
-      </div>
+    </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="kpi-low-risk">0</div>
         <div class="kpi-label">Низкий риск</div>
@@ -76,40 +76,10 @@
       <div class="card chart-card">
         <div class="chart-title">Компании по регионам</div>
         <div id="regionChart" class="chart-container"></div>
-      </div>
-
-      <!-- Распределение по рискам -->
-      <div class="card chart-card">
-        <div class="chart-title">Распределение по рискам</div>
-        <div id="riskChart" class="chart-container"></div>
-      </div>
-
-      <!-- Топ компаний по капиталу -->
-      <div class="card chart-card">
-        <div class="chart-title">Топ-10 компаний по капиталу</div>
-        <div id="capitalChart" class="chart-container"></div>
-      </div>
-
-      <!-- Корреляция риск-капитал -->
-      <div class="card chart-card">
-        <div class="chart-title">Корреляция риск-капитал</div>
-        <div id="correlationChart" class="chart-container"></div>
-      </div>
-
-      <!-- Распределение ИДО -->
-      <div class="card chart-card">
-        <div class="chart-title">Распределение по ИДО</div>
-        <div id="idoChart" class="chart-container"></div>
-      </div>
-
-      <!-- Распределение по размеру капитала -->
-      <div class="card chart-card">
-        <div class="chart-title">Распределение по размеру капитала</div>
-        <div id="capitalSizeChart" class="chart-container"></div>
-      </div>
     </div>
-  </div>
-
+    </div>
+    </div>
+  
   <!-- Loading indicator -->
   <div id="loading" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;">
@@ -159,110 +129,6 @@ function regionChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
-function riskChart() {
-  const el = echarts.init(document.getElementById('riskChart'));
-  const data = DATA.companies_by_risk || [];
-  const colors = {
-    'Низкий': '#10b981',
-    'Средний': '#f59e0b', 
-    'Высокий': '#ef4444',
-    'Критический': '#dc2626'
-  };
-  el.setOption({
-    tooltip: { trigger: 'item' },
-    series: [{
-      type: 'pie',
-      radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
-      data: data.map(x => ({ 
-        name: x.spark_risk || 'Неизвестно', 
-        value: x.count || 0,
-        itemStyle: { color: colors[x.spark_risk] || '#6b7280' }
-      }))
-    }]
-  });
-  window.addEventListener('resize', () => el.resize());
-}
-
-function capitalChart() {
-  const el = echarts.init(document.getElementById('capitalChart'));
-  const data = DATA.top_companies_by_capital || [];
-  el.setOption({
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: data.map(x => x.short_name || 'Неизвестно') },
-    yAxis: { type: 'value', name: 'Капитал (млн ₽)' },
-    series: [{
-      type: 'bar',
-      data: data.map(x => ((x.authorized_capital || 0) / 1000000).toFixed(1)),
-      itemStyle: { borderRadius: [4, 4, 0, 0] }
-    }]
-  });
-  window.addEventListener('resize', () => el.resize());
-}
-
-function correlationChart() {
-  const el = echarts.init(document.getElementById('correlationChart'));
-  const data = DATA.risk_capital_correlation || [];
-  const colors = {
-    'Низкий': '#10b981',
-    'Средний': '#f59e0b',
-    'Высокий': '#ef4444', 
-    'Критический': '#dc2626'
-  };
-  el.setOption({
-    tooltip: { trigger: 'item' },
-    xAxis: { type: 'value', name: 'Капитал (млн ₽)' },
-    yAxis: { type: 'value', name: 'ИДО' },
-    series: [{
-      type: 'scatter',
-      data: data.map(x => [
-        ((x.authorized_capital || 0) / 1000000).toFixed(1),
-        x.ido || 0,
-        x.short_name || 'Неизвестно',
-        x.spark_risk || 'Неизвестно'
-      ]),
-      symbolSize: 8,
-      itemStyle: {
-        color: function(params) {
-          return colors[params.data[3]] || '#6b7280';
-        }
-      }
-    }]
-  });
-  window.addEventListener('resize', () => el.resize());
-}
-
-function idoChart() {
-  const el = echarts.init(document.getElementById('idoChart'));
-  const data = DATA.ido_distribution || [];
-  el.setOption({
-    tooltip: { trigger: 'item' },
-    xAxis: { type: 'category', data: data.map(x => x.ido_group || 'Неизвестно') },
-    yAxis: { type: 'value' },
-    series: [{
-      type: 'bar',
-      data: data.map(x => x.count || 0),
-      itemStyle: { borderRadius: [4, 4, 0, 0] }
-    }]
-  });
-  window.addEventListener('resize', () => el.resize());
-}
-
-function capitalSizeChart() {
-  const el = echarts.init(document.getElementById('capitalSizeChart'));
-  const data = DATA.capital_distribution || [];
-  el.setOption({
-    tooltip: { trigger: 'item' },
-    xAxis: { type: 'category', data: data.map(x => x.capital_group || 'Неизвестно') },
-    yAxis: { type: 'value' },
-    series: [{
-      type: 'bar',
-      data: data.map(x => x.count || 0),
-      itemStyle: { borderRadius: [4, 4, 0, 0] }
-    }]
-  });
-  window.addEventListener('resize', () => el.resize());
-}
 
 async function init() {
   try {
@@ -276,7 +142,7 @@ async function init() {
     // Инициализация всех графиков с индивидуальными try-catch
     try {
       console.log('Вызываем setKPI...');
-      setKPI(); 
+    setKPI(); 
       console.log('setKPI выполнен');
     } catch (e) {
       console.error('Ошибка в setKPI:', e);
@@ -288,46 +154,6 @@ async function init() {
       console.log('regionChart выполнен');
     } catch (e) {
       console.error('Ошибка в regionChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем riskChart...');
-      riskChart();
-      console.log('riskChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в riskChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем capitalChart...');
-      capitalChart(); 
-      console.log('capitalChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в capitalChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем correlationChart...');
-      correlationChart();
-      console.log('correlationChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в correlationChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем idoChart...');
-      idoChart(); 
-      console.log('idoChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в idoChart:', e);
-    }
-    
-    try {
-      console.log('Вызываем capitalSizeChart...');
-      capitalSizeChart();
-      console.log('capitalSizeChart выполнен');
-    } catch (e) {
-      console.error('Ошибка в capitalSizeChart:', e);
     }
     
     // Скрыть индикатор загрузки
