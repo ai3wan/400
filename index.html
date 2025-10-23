@@ -329,24 +329,56 @@ document.getElementById('resetBtn').onclick = ()=>{ document.getElementById('per
 // Async инициализация дашборда
 async function init() {
   try {
+    console.log('Начинаем инициализацию...');
+    
     // Загрузка данных из API
+    console.log('Загружаем данные...');
     await loadData();
+    console.log('Данные загружены:', DATA);
     
     // Инициализация всех графиков
+    console.log('Вызываем setKPI...');
     setKPI(); 
+    console.log('setKPI выполнен');
+    
+    console.log('Вызываем initFilters...');
     initFilters(); 
+    console.log('initFilters выполнен');
+    
+    console.log('Вызываем pieChart...');
     pieChart(); 
+    console.log('pieChart выполнен');
+    
+    console.log('Вызываем pieCountriesChart...');
     pieCountriesChart();
+    console.log('pieCountriesChart выполнен');
+    
+    console.log('Вызываем barChart...');
     barChart(); 
+    console.log('barChart выполнен');
+    
+    console.log('Вызываем barRisksChart...');
     barRisksChart();
+    console.log('barRisksChart выполнен');
+    
+    console.log('Вызываем ganttChart...');
     ganttChart(); 
+    console.log('ganttChart выполнен');
+    
+    console.log('Вызываем lineChart...');
     lineChart(); 
+    console.log('lineChart выполнен');
+    
+    console.log('Вызываем heatChart...');
     heatChart();
+    console.log('heatChart выполнен');
     
     // Скрыть индикатор загрузки
     document.getElementById('loading').style.display = 'none';
+    console.log('Инициализация завершена успешно');
   } catch (error) {
     console.error('Ошибка инициализации:', error);
+    console.error('Stack trace:', error.stack);
     document.getElementById('loading').innerHTML = '<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+error.message+'</div></div>';
   }
 }
