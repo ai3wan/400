@@ -336,42 +336,74 @@ async function init() {
     await loadData();
     console.log('Данные загружены:', DATA);
     
-    // Инициализация всех графиков
-    console.log('Вызываем setKPI...');
-    setKPI(); 
-    console.log('setKPI выполнен');
+    // Инициализация всех графиков с индивидуальными try-catch
+    try {
+      console.log('Вызываем setKPI...');
+      setKPI(); 
+      console.log('setKPI выполнен');
+    } catch (e) {
+      console.error('Ошибка в setKPI:', e);
+    }
     
-    console.log('Вызываем initFilters...');
-    initFilters(); 
-    console.log('initFilters выполнен');
+    try {
+      console.log('Вызываем initFilters...');
+      initFilters(); 
+      console.log('initFilters выполнен');
+    } catch (e) {
+      console.error('Ошибка в initFilters:', e);
+    }
     
-    console.log('Вызываем pieChart...');
-    pieChart(); 
-    console.log('pieChart выполнен');
+    try {
+      console.log('Вызываем pieChart...');
+      pieChart(); 
+      console.log('pieChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в pieChart:', e);
+    }
     
-    console.log('Вызываем pieCountriesChart...');
-    pieCountriesChart();
-    console.log('pieCountriesChart выполнен');
+    try {
+      console.log('Вызываем pieCountriesChart...');
+      pieCountriesChart();
+      console.log('pieCountriesChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в pieCountriesChart:', e);
+    }
     
-    console.log('Вызываем barChart...');
-    barChart(); 
-    console.log('barChart выполнен');
+    try {
+      console.log('Вызываем barChart...');
+      barChart(); 
+      console.log('barChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в barChart:', e);
+    }
     
-    console.log('Вызываем barRisksChart...');
-    barRisksChart();
-    console.log('barRisksChart выполнен');
+    try {
+      console.log('Вызываем barRisksChart...');
+      barRisksChart();
+      console.log('barRisksChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в barRisksChart:', e);
+    }
     
     console.log('Пропускаем ganttChart (временно отключен)...');
     // ganttChart(); 
     console.log('ganttChart пропущен');
     
-    console.log('Вызываем lineChart...');
-    lineChart(); 
-    console.log('lineChart выполнен');
+    try {
+      console.log('Вызываем lineChart...');
+      lineChart(); 
+      console.log('lineChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в lineChart:', e);
+    }
     
-    console.log('Вызываем heatChart...');
-    heatChart();
-    console.log('heatChart выполнен');
+    try {
+      console.log('Вызываем heatChart...');
+      heatChart();
+      console.log('heatChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в heatChart:', e);
+    }
     
     // Скрыть индикатор загрузки
     document.getElementById('loading').style.display = 'none';
