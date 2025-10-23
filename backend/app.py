@@ -223,10 +223,34 @@ async def get_dashboard_data() -> Dict[str, Any]:
                 END
             ORDER BY 
                 CASE
-                    WHEN ido IS NULL THEN 0
-                    WHEN ido < 50 THEN 1
-                    WHEN ido < 70 THEN 2
-                    WHEN ido < 85 THEN 3
+                    WHEN CASE
+                        WHEN ido IS NULL THEN 'Не указан'
+                        WHEN ido < 50 THEN 'Низкий (<50)'
+                        WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                        WHEN ido < 85 THEN 'Средний (70-85)'
+                        ELSE 'Высокий (85+)'
+                    END = 'Не указан' THEN 0
+                    WHEN CASE
+                        WHEN ido IS NULL THEN 'Не указан'
+                        WHEN ido < 50 THEN 'Низкий (<50)'
+                        WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                        WHEN ido < 85 THEN 'Средний (70-85)'
+                        ELSE 'Высокий (85+)'
+                    END = 'Низкий (<50)' THEN 1
+                    WHEN CASE
+                        WHEN ido IS NULL THEN 'Не указан'
+                        WHEN ido < 50 THEN 'Низкий (<50)'
+                        WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                        WHEN ido < 85 THEN 'Средний (70-85)'
+                        ELSE 'Высокий (85+)'
+                    END = 'Ниже среднего (50-70)' THEN 2
+                    WHEN CASE
+                        WHEN ido IS NULL THEN 'Не указан'
+                        WHEN ido < 50 THEN 'Низкий (<50)'
+                        WHEN ido < 70 THEN 'Ниже среднего (50-70)'
+                        WHEN ido < 85 THEN 'Средний (70-85)'
+                        ELSE 'Высокий (85+)'
+                    END = 'Средний (70-85)' THEN 3
                     ELSE 4
                 END
         """)
@@ -254,10 +278,34 @@ async def get_dashboard_data() -> Dict[str, Any]:
                 END
             ORDER BY 
                 CASE
-                    WHEN authorized_capital IS NULL THEN 0
-                    WHEN authorized_capital < 1000000 THEN 1
-                    WHEN authorized_capital < 10000000 THEN 2
-                    WHEN authorized_capital < 100000000 THEN 3
+                    WHEN CASE
+                        WHEN authorized_capital IS NULL THEN 'Не указан'
+                        WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                        WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                        WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                        ELSE 'Свыше 100 млн'
+                    END = 'Не указан' THEN 0
+                    WHEN CASE
+                        WHEN authorized_capital IS NULL THEN 'Не указан'
+                        WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                        WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                        WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                        ELSE 'Свыше 100 млн'
+                    END = 'До 1 млн' THEN 1
+                    WHEN CASE
+                        WHEN authorized_capital IS NULL THEN 'Не указан'
+                        WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                        WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                        WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                        ELSE 'Свыше 100 млн'
+                    END = '1-10 млн' THEN 2
+                    WHEN CASE
+                        WHEN authorized_capital IS NULL THEN 'Не указан'
+                        WHEN authorized_capital < 1000000 THEN 'До 1 млн'
+                        WHEN authorized_capital < 10000000 THEN '1-10 млн'
+                        WHEN authorized_capital < 100000000 THEN '10-100 млн'
+                        ELSE 'Свыше 100 млн'
+                    END = '10-100 млн' THEN 3
                     ELSE 4
                 END
         """)
