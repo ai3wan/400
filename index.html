@@ -194,22 +194,22 @@ function initFilters(){
 }
 function pieChart(){
   const el = echarts.init(document.getElementById('pie'));
-  const data = DATA.pie_status.slice(0);
-  data.sort((a,b)=>b.count-a.count);
+  const data = (DATA.pie_status || []).slice(0);
+  data.sort((a,b)=>(b.count || 0)-(a.count || 0));
   const top = data.slice(0,6);
-  const other = data.slice(6).reduce((acc,x)=>acc+x.count,0);
+  const other = data.slice(6).reduce((acc,x)=>acc+(x.count || 0),0);
   if(other>0) top.push({status:'Прочее', count:other});
   el.setOption({
     tooltip:{trigger:'item'},
     series:[{type:'pie', radius:['40%','70%'], itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},
-             data: top.map(x=>({name:x.status, value:x.count}))}]
+             data: top.map(x=>({name:x.status || 'Неизвестно', value:x.count || 0}))}]
   });
   window.addEventListener('resize',()=>el.resize());
 }
 function pieCountriesChart(){
   const el = echarts.init(document.getElementById('pieCountries'));
   const data = DATA.suppliers_by_country || [];
-  const total = data.reduce((acc,x)=>acc+x.count,0);
+  const total = data.reduce((acc,x)=>acc+(x.count || 0),0);
   
   // Обновить статистику
   document.getElementById('totalSuppliers').innerText = total;
@@ -231,12 +231,12 @@ function pieCountriesChart(){
 }
 function barChart(){
   const el = echarts.init(document.getElementById('bar'));
-  const data = DATA.top_suppliers;
+  const data = DATA.top_suppliers || [];
   el.setOption({
     tooltip:{trigger:'axis'},
-    xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii)},
+    xAxis:{type:'category', data:data.map(x=>x.nazvanie_kompanii || 'Неизвестно')},
     yAxis:{type:'value'},
-    series:[{type:'bar', data:data.map(x=>x.components)}]
+    series:[{type:'bar', data:data.map(x=>x.components || 0)}]
   });
   window.addEventListener('resize',()=>el.resize());
 }
@@ -247,10 +247,10 @@ function barRisksChart(){
   // Подсчитаем статистику
   let totalRisks = 0, openRisks = 0, inProgressRisks = 0, closedRisks = 0;
   data.forEach(item => {
-    totalRisks += item.total_count;
-    openRisks += item.open_count;
-    inProgressRisks += item.in_progress_count;
-    closedRisks += item.closed_count;
+    totalRisks += (item.total_count || 0);
+    openRisks += (item.open_count || 0);
+    inProgressRisks += (item.in_progress_count || 0);
+    closedRisks += (item.closed_count || 0);
   });
   
   // Обновим статистику
@@ -263,12 +263,12 @@ function barRisksChart(){
   el.setOption({
     tooltip:{trigger:'axis', axisPointer:{type:'shadow'}},
     legend:{data:['Открыт', 'В работе', 'Закрыт']},
-    xAxis:{type:'category', data:data.map(x=>x.kategoriya)},
+    xAxis:{type:'category', data:data.map(x=>x.kategoriya || 'Неизвестно')},
     yAxis:{type:'value'},
     series:[
-      {name:'Открыт', type:'bar', stack:'total', data:data.map(x=>x.open_count), itemStyle:{color:'#ef4444'}},
-      {name:'В работе', type:'bar', stack:'total', data:data.map(x=>x.in_progress_count), itemStyle:{color:'#f59e0b'}},
-      {name:'Закрыт', type:'bar', stack:'total', data:data.map(x=>x.closed_count), itemStyle:{color:'#10b981'}}
+      {name:'Открыт', type:'bar', stack:'total', data:data.map(x=>x.open_count || 0), itemStyle:{color:'#ef4444'}},
+      {name:'В работе', type:'bar', stack:'total', data:data.map(x=>x.in_progress_count || 0), itemStyle:{color:'#f59e0b'}},
+      {name:'Закрыт', type:'bar', stack:'total', data:data.map(x=>x.closed_count || 0), itemStyle:{color:'#10b981'}}
     ]
   });
   window.addEventListener('resize',()=>el.resize());
