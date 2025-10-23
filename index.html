@@ -124,19 +124,19 @@ function riskChart() {
   const el = echarts.init(document.getElementById('riskChart'));
   const data = DATA.companies_by_risk || [];
   
-  // Цвета для разных уровней риска (пастельные оттенки)
-  const colors = {
-    'Низкий': '#86efac',    // пастельный зеленый
-    'Средний': '#fde68a',   // пастельный желтый
-    'Высокий': '#fca5a5',   // пастельный красный
-    'Критический': '#f87171' // более насыщенный пастельный красный
-  };
+  // Подготавливаем данные с цветами (пастельные оттенки)
+  const colors = [
+    '#86efac',  // пастельный зеленый (Низкий)
+    '#fde68a',  // пастельный желтый (Средний)
+    '#fca5a5',  // пастельный красный (Высокий)
+    '#f87171'   // более насыщенный пастельный красный (Критический)
+  ];
   
-  const chartData = data.map(x => ({
+  const chartData = data.map((x, index) => ({
     name: x.spark_risk || 'Неизвестно',
     value: x.count || 0,
     itemStyle: { 
-      color: colors[x.spark_risk] || '#6b7280',
+      color: colors[index % colors.length],
       borderRadius: 6, 
       borderColor: '#fff', 
       borderWidth: 1 
