@@ -385,9 +385,13 @@ async function init() {
       console.error('Ошибка в barRisksChart:', e);
     }
     
-    console.log('Пропускаем ganttChart (временно отключен)...');
-    // ganttChart(); 
-    console.log('ganttChart пропущен');
+    try {
+      console.log('Вызываем ganttChart...');
+      ganttChart(); 
+      console.log('ganttChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в ganttChart:', e);
+    }
     
     try {
       console.log('Вызываем lineChart...');
