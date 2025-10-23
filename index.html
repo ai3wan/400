@@ -6,8 +6,8 @@
   <title>Дашборд компаний</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <style>
-  :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
-  [data-theme="light"]{--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
+  :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
+  [data-theme="dark"]{--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--c-bg);color:var(--c-text)}
   .container{max-width:1400px;margin:0 auto;padding:20px}
@@ -227,7 +227,13 @@ async function init() {
 // Обработчики событий
 document.getElementById('themeBtn').onclick = () => {
   const h = document.documentElement;
-  h.setAttribute('data-theme', h.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  const currentTheme = h.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  h.setAttribute('data-theme', newTheme);
+  
+  // Обновляем иконку кнопки
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
 };
 
 document.getElementById('refreshBtn').onclick = () => {
