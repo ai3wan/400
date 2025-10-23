@@ -141,7 +141,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
             SELECT
                 COUNT(*) as total_companies,
                 AVG(ido) as avg_ido,
-                AVG(ifr) as avg_ifr,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ifr) as avg_ifr,
                 AVG(ipd) as avg_ipd,
                 AVG(authorized_capital) as avg_capital,
                 MIN(authorized_capital) as min_capital,
@@ -315,7 +315,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
         kpi = {
             "total_companies": kpi_data.get('total_companies', 0) or 0,
             "avg_ido": round(float(kpi_data.get('avg_ido', 0) or 0), 2),
-            "avg_ifr": round(float(kpi_data.get('avg_ifr', 0) or 0), 2),
+            "avg_ifr": round(float(kpi_data.get('avg_ifr', 0) or 0), 2),  # Медианный ИФР
             "avg_ipd": round(float(kpi_data.get('avg_ipd', 0) or 0), 2),
             "avg_capital": round(float(kpi_data.get('avg_capital', 0) or 0), 2),
             "min_capital": round(float(kpi_data.get('min_capital', 0) or 0), 2),
