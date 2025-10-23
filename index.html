@@ -76,7 +76,7 @@
       <div class="card chart-card">
         <div class="chart-title">Поставщики по регионам</div>
         <div id="regionChart" class="chart-container"></div>
-      </div>
+    </div>
 
       <!-- Распределение по спарк-риску -->
       <div class="card chart-card">
@@ -170,13 +170,8 @@ function riskChart() {
       type: 'pie',
       radius: ['30%', '60%'],
       center: ['50%', '45%'],
-      data: chartData.map(item => ({
-        ...item,
-        itemStyle: {
-          ...item.itemStyle,
-          color: colors[item.name] || '#6b7280'
-        }
-      })),
+      color: chartData.map(item => colors[item.name] || '#6b7280'),
+      data: chartData,
       emphasis: {
         itemStyle: {
           shadowBlur: 10,
