@@ -143,24 +143,27 @@ function regionChart() {
     },
     legend: {
       type: 'scroll',
-      orient: 'vertical',
-      right: 10,
-      top: 20,
-      bottom: 20,
+      orient: 'horizontal',
+      left: 'center',
+      top: 'bottom',
+      width: '80%',
       data: chartData.map(item => item.name),
       textStyle: {
-        color: 'var(--c-text)',
+        color: '#374151',
         fontSize: 12
       },
       itemWidth: 14,
       itemHeight: 14,
-      itemGap: 5
+      itemGap: 15,
+      formatter: function(name) {
+        return name;
+      }
     },
     series: [{
       name: 'Компании по регионам',
       type: 'pie',
-      radius: ['40%', '70%'],
-      center: ['40%', '50%'],
+      radius: ['30%', '60%'],
+      center: ['50%', '45%'],
       data: chartData,
       emphasis: {
         itemStyle: {
