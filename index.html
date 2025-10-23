@@ -136,6 +136,7 @@ function riskChart() {
     name: x.spark_risk || 'Неизвестно',
     value: x.count || 0,
     itemStyle: { 
+      color: colors[x.spark_risk] || '#6b7280',
       borderRadius: 6, 
       borderColor: '#fff', 
       borderWidth: 1 
@@ -170,7 +171,6 @@ function riskChart() {
       type: 'pie',
       radius: ['30%', '60%'],
       center: ['50%', '45%'],
-      color: chartData.map(item => colors[item.name] || '#6b7280'),
       data: chartData,
       emphasis: {
         itemStyle: {
