@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Поставщики по регионам</title>
+  <title>Центр мониторинга ВСМ400</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <style>
   :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
@@ -35,7 +35,7 @@
 <body>
 <div class="container">
     <div class="header">
-      <h1 class="title">Поставщики по регионам</h1>
+      <h1 class="title">Центр мониторинга ВСМ400</h1>
       <div class="controls">
         <button id="themeBtn">🌙</button>
         <button id="refreshBtn">🔄</button>
@@ -74,9 +74,15 @@
     <div class="charts-grid">
       <!-- Распределение по регионам -->
       <div class="card chart-card">
-        <div class="chart-title">Компании по регионам</div>
+        <div class="chart-title">Поставщики по регионам</div>
         <div id="regionChart" class="chart-container"></div>
-    </div>
+      </div>
+
+      <!-- Распределение по спарк-риску -->
+      <div class="card chart-card">
+        <div class="chart-title">Распределение по спарк-риску</div>
+        <div id="riskChart" class="chart-container"></div>
+      </div>
     </div>
     </div>
   
@@ -112,6 +118,83 @@ function setKPI() {
   document.getElementById('kpi-avg-ipd').innerText = (DATA.kpi?.avg_ipd || 0).toFixed(1);
   document.getElementById('kpi-avg-capital').innerText = ((DATA.kpi?.avg_capital || 0) / 1000000).toFixed(1) + 'М';
   document.getElementById('kpi-low-risk').innerText = (DATA.kpi?.low_risk_count || 0).toLocaleString('ru-RU');
+}
+
+function riskChart() {
+  const el = echarts.init(document.getElementById('riskChart'));
+  const data = DATA.companies_by_risk || [];
+  
+  // Цвета для разных уровней риска
+  const colors = {
+    'Низкий': '#10b981',
+    'Средний': '#f59e0b', 
+    'Высокий': '#ef4444',
+    'Критический': '#dc2626'
+  };
+  
+  const chartData = data.map(x => ({
+    name: x.spark_risk || 'Неизвестно',
+    value: x.count || 0,
+    itemStyle: { 
+      color: colors[x.spark_risk] || '#6b7280',
+      borderRadius: 6, 
+      borderColor: '#fff', 
+      borderWidth: 1 
+    }
+  }));
+  
+  el.setOption({
+    tooltip: { 
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
+    },
+    legend: {
+      type: 'scroll',
+      orient: 'horizontal',
+      left: 'center',
+      top: 'bottom',
+      width: '80%',
+      data: chartData.map(item => item.name),
+      textStyle: {
+        color: '#374151',
+        fontSize: 12
+      },
+      itemWidth: 14,
+      itemHeight: 14,
+      itemGap: 15,
+      formatter: function(name) {
+        return name;
+      }
+    },
+    series: [{
+      name: 'Распределение по спарк-риску',
+      type: 'pie',
+      radius: ['30%', '60%'],
+      center: ['50%', '45%'],
+      data: chartData,
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: 'rgba(0, 0, 0, 0.5)'
+        }
+      },
+      label: {
+        show: true,
+        formatter: '{b}: {c}',
+        fontSize: 11,
+        color: '#374151'
+      },
+      labelLine: {
+        show: true,
+        lineStyle: {
+          color: '#374151'
+        }
+      }
+    }]
+  });
+  
+  window.addEventListener('resize', () => el.resize());
 }
 
 function regionChart() {
@@ -215,6 +298,14 @@ async function init() {
       console.log('regionChart выполнен');
     } catch (e) {
       console.error('Ошибка в regionChart:', e);
+    }
+    
+    try {
+      console.log('Вызываем riskChart...');
+      riskChart();
+      console.log('riskChart выполнен');
+    } catch (e) {
+      console.error('Ошибка в riskChart:', e);
     }
     
     // Скрыть индикатор загрузки
