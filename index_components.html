@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дашборд компонентов</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+  :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
+  [data-theme="light"]{--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--c-bg);color:var(--c-text)}
+  .container{max-width:1400px;margin:0 auto;padding:20px}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+  .title{font-size:32px;font-weight:700;background:linear-gradient(90deg,var(--c-teal),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .controls{display:flex;gap:12px;align-items:center}
+  .card{background:var(--c-card);border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:16px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+  .kpi-card{text-align:center;padding:20px}
+  .kpi-value{font-size:28px;font-weight:700;color:var(--c-teal);margin-bottom:4px}
+  .kpi-label{font-size:14px;color:var(--c-text);opacity:0.7}
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px}
+  .chart-card{min-height:420px}
+  .chart-title{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--c-text)}
+  .chart-container{width:100%;height:360px}
+  button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">Дашборд компонентов</h1>
+      <div class="controls">
+        <button id="themeBtn">🌙</button>
+        <button id="refreshBtn">🔄</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-total-components">0</div>
+        <div class="kpi-label">Всего компонентов</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-total-qty">0</div>
+        <div class="kpi-label">Суммарное количество (quantity)</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-obj-types">0</div>
+        <div class="kpi-label">Уникальных типов объектов</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="kpi-included-uniq">0</div>
+        <div class="kpi-label">Уникальных included_in_name</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <div class="chart-title">Топ-15 включений (included_in_name)</div>
+        <div id="topIncludedChart" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Распределение по типу объекта (object_type)</div>
+        <div id="byObjectTypeChart" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Топ-10 поставщиков по числу компонентов</div>
+        <div id="topSuppliersChart" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Сумма quantity по топ-15 включениям</div>
+        <div id="qtyByIncludedChart" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Динамика добавления компонентов по месяцам</div>
+        <div id="timelineChart" class="chart-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;">
+    <div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+      <div style="font-size:18px;font-weight:600;">Загрузка данных...</div>
+    </div>
+  </div>
+
+<script>
+let DATA = {};
+
+async function loadData() {
+  const res = await fetch('/400/api/components/metrics');
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  DATA = await res.json();
+}
+
+function setKPI() {
+  const k = DATA.kpi || {};
+  document.getElementById('kpi-total-components').innerText = (k.total_components||0).toLocaleString('ru-RU');
+  document.getElementById('kpi-total-qty').innerText = (k.total_quantity||0).toLocaleString('ru-RU');
+  document.getElementById('kpi-obj-types').innerText = (k.unique_object_types||0).toLocaleString('ru-RU');
+  document.getElementById('kpi-included-uniq').innerText = (k.unique_included_in_names||0).toLocaleString('ru-RU');
+}
+
+function topIncludedChart() {
+  const el = echarts.init(document.getElementById('topIncludedChart'));
+  const data = (DATA.top_included_in||[]);
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.included_in_name || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function byObjectTypeChart() {
+  const el = echarts.init(document.getElementById('byObjectTypeChart'));
+  const data = (DATA.by_object_type||[]);
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'pie', radius: ['40%','70%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 },
+      data: data.map(x => ({ name: x.object_type || 'Не указано', value: x.count||0 }))
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function topSuppliersChart() {
+  const el = echarts.init(document.getElementById('topSuppliersChart'));
+  const data = (DATA.top_suppliers||[]);
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.supplier || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function qtyByIncludedChart() {
+  const el = echarts.init(document.getElementById('qtyByIncludedChart'));
+  const data = (DATA.quantity_by_included_in||[]);
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.included_in_name || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.total_quantity||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function timelineChart() {
+  const el = echarts.init(document.getElementById('timelineChart'));
+  const data = (DATA.timeline_by_month||[]);
+  const labels = data.map(x => (x.month || '').slice(0,10));
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: labels },
+    yAxis: { type: 'value' },
+    series: [{ type: 'line', smooth: true, data: data.map(x => x.count||0) }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+async function init() {
+  try {
+    await loadData();
+    setKPI();
+    topIncludedChart();
+    byObjectTypeChart();
+    topSuppliersChart();
+    qtyByIncludedChart();
+    timelineChart();
+    document.getElementById('loading').style.display = 'none';
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loading').innerHTML = '<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+(e.message||e)+'</div></div>';
+  }
+}
+
+document.getElementById('themeBtn').onclick = () => {
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+};
+
+document.getElementById('refreshBtn').onclick = () => {
+  document.getElementById('loading').style.display = 'flex';
+  init();
+};
+
+init();
+</script>
+</body>
+</html>
