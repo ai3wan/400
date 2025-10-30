@@ -86,6 +86,26 @@
       </div>
     </div>
 
+    <!-- Components KPI (мастер-цифры по компонентам) -->
+    <div class="kpi-grid">
+      <div class="card kpi-card">
+        <div class="kpi-value" id="cmp-kpi-total">0</div>
+        <div class="kpi-label">Всего компонентов</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="cmp-kpi-qty">0</div>
+        <div class="kpi-label">Суммарное quantity</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="cmp-kpi-types">0</div>
+        <div class="kpi-label">Типов объектов</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="cmp-kpi-included">0</div>
+        <div class="kpi-label">Уникальных included_in_name</div>
+      </div>
+    </div>
+
     <!-- Charts: Components (ниже дашборда по поставщикам) -->
     <div class="charts-grid components">
       <div class="card chart-card">
@@ -140,6 +160,14 @@ async function loadComponents() {
   const res = await fetch('/400/api/components/metrics');
   if (!res.ok) throw new Error('HTTP '+res.status+' on components');
   CMP = await res.json();
+}
+
+function setCmpKPI() {
+  const k = CMP.kpi || {};
+  document.getElementById('cmp-kpi-total').innerText = (k.total_components||0).toLocaleString('ru-RU');
+  document.getElementById('cmp-kpi-qty').innerText = (k.total_quantity||0).toLocaleString('ru-RU');
+  document.getElementById('cmp-kpi-types').innerText = (k.unique_object_types||0).toLocaleString('ru-RU');
+  document.getElementById('cmp-kpi-included').innerText = (k.unique_included_in_names||0).toLocaleString('ru-RU');
 }
 
 function setKPI() {
@@ -386,7 +414,8 @@ async function init() {
       console.error('Ошибка в riskChart:', e);
     }
 
-    // Компоненты: отрисовка
+    // Компоненты: KPI + графики
+    try { setCmpKPI(); } catch (e) { console.error(e); }
     try { cmpTopIncludedChart(); } catch (e) { console.error(e); }
     try { cmpByTypeChart(); } catch (e) { console.error(e); }
     try { cmpTopSuppliersChart(); } catch (e) { console.error(e); }
