@@ -170,8 +170,11 @@ async function loadData() {
 }
 
 async function loadComponents() {
-  const qs = CMP_SELECTED ? ('?included_in_name=' + encodeURIComponent(CMP_SELECTED)) : '';
-  const res = await fetch('/400/api/components/metrics' + qs);
+  const base = '/400/api/components/metrics';
+  const params = new URLSearchParams();
+  if (CMP_SELECTED) params.set('included_in_name', CMP_SELECTED);
+  params.set('_ts', String(Date.now())); // cache busting
+  const res = await fetch(base + '?' + params.toString(), { cache: 'no-store' });
   if (!res.ok) throw new Error('HTTP '+res.status+' on components');
   CMP = await res.json();
 }
@@ -347,7 +350,9 @@ function regionChart() {
 }
 
 function cmpTopIncludedChart() {
-  const el = echarts.init(document.getElementById('cmpTopIncluded'));
+  const elDom = document.getElementById('cmpTopIncluded');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
   const data = CMP.top_included_in || [];
   el.setOption({
     tooltip: { trigger: 'axis' },
@@ -359,7 +364,9 @@ function cmpTopIncludedChart() {
 }
 
 function cmpByTypeChart() {
-  const el = echarts.init(document.getElementById('cmpByType'));
+  const elDom = document.getElementById('cmpByType');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
   const data = CMP.by_object_type || [];
   el.setOption({
     tooltip: { trigger: 'item' },
@@ -369,7 +376,9 @@ function cmpByTypeChart() {
 }
 
 function cmpTopSuppliersChart() {
-  const el = echarts.init(document.getElementById('cmpTopSuppliers'));
+  const elDom = document.getElementById('cmpTopSuppliers');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
   const data = CMP.top_suppliers || [];
   el.setOption({
     tooltip: { trigger: 'axis' },
@@ -381,7 +390,9 @@ function cmpTopSuppliersChart() {
 }
 
 function cmpTimelineChart() {
-  const el = echarts.init(document.getElementById('cmpTimeline'));
+  const elDom = document.getElementById('cmpTimeline');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
   const data = CMP.timeline_by_month || [];
   const labels = data.map(x => (x.month || '').slice(0,10));
   el.setOption({
