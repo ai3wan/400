@@ -392,16 +392,17 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
         )
         kpi_row = cursor.fetchone()
 
-        # Топ-15 included_in_name по количеству компонентов (без фильтра, чтобы заполнить селект)
+        # Топ-15 included_in_name по количеству компонентов (при фильтре вернётся соответствующая группа)
         cursor.execute(
-            """
+            f"""
             SELECT included_in_name, COUNT(*) AS count
             FROM component
-            WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+            {('WHERE' if not where_sql else where_sql + ' AND')} included_in_name IS NOT NULL AND included_in_name <> ''
             GROUP BY included_in_name
             ORDER BY COUNT(*) DESC
             LIMIT 15
-            """
+            """,
+            params,
         )
         top_included_in = cursor.fetchall()
 

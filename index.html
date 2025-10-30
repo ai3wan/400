@@ -475,6 +475,7 @@ document.getElementById('cmpFilter').onchange = async (e) => {
     CMP_SELECTED = e.target.value || "";
     await loadComponents();
     setCmpKPI();
+    cmpTopIncludedChart();
     cmpByTypeChart();
     cmpTopSuppliersChart();
     cmpTimelineChart();
@@ -488,6 +489,7 @@ document.getElementById('cmpFilterReset').onclick = async () => {
     CMP_SELECTED = "";
     await loadComponents();
     setCmpKPI();
+    cmpTopIncludedChart();
     cmpByTypeChart();
     cmpTopSuppliersChart();
     cmpTimelineChart();
