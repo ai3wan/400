@@ -9,7 +9,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 
 # Загрузка переменных окружения из .env файла
@@ -365,32 +365,44 @@ async def get_dashboard_data() -> Dict[str, Any]:
 
 
 @app.get("/api/components/metrics")
-async def get_components_metrics() -> Dict[str, Any]:
+async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict[str, Any]:
     """Агрегированные метрики по таблице component"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
+        # Подготовка WHERE и параметров
+        where_sql = ""
+        params: List[Any] = []
+        if included_in_name:
+            where_sql = " WHERE included_in_name = %s"
+            params.append(included_in_name)
+
         # KPI
-        cursor.execute("""
+        cursor.execute(
+            f"""
             SELECT
                 COUNT(*) AS total_components,
                 COALESCE(SUM(quantity), 0) AS total_quantity,
                 COUNT(DISTINCT object_type) AS unique_object_types,
                 COUNT(DISTINCT included_in_name) AS unique_included_in_names
-            FROM component
-        """)
+            FROM component{where_sql}
+            """,
+            params,
+        )
         kpi_row = cursor.fetchone()
 
-        # Топ-15 included_in_name по количеству компонентов
-        cursor.execute("""
+        # Топ-15 included_in_name по количеству компонентов (без фильтра, чтобы заполнить селект)
+        cursor.execute(
+            """
             SELECT included_in_name, COUNT(*) AS count
             FROM component
             WHERE included_in_name IS NOT NULL AND included_in_name <> ''
             GROUP BY included_in_name
             ORDER BY COUNT(*) DESC
             LIMIT 15
-        """)
+            """
+        )
         top_included_in = cursor.fetchall()
 
         # Сколько групп вне топ-15
@@ -408,48 +420,60 @@ async def get_components_metrics() -> Dict[str, Any]:
         others_groups = cursor.fetchone() or {"others_count": 0}
 
         # Распределение по типу объекта
-        cursor.execute("""
+        cursor.execute(
+            f"""
             SELECT object_type, COUNT(*) AS count
             FROM component
-            WHERE object_type IS NOT NULL AND object_type <> ''
+            {('WHERE' if not where_sql else where_sql + ' AND')} object_type IS NOT NULL AND object_type <> ''
             GROUP BY object_type
             ORDER BY COUNT(*) DESC
             LIMIT 12
-        """)
+            """,
+            params,
+        )
         by_object_type = cursor.fetchall()
 
         # Топ-10 поставщиков
-        cursor.execute("""
+        cursor.execute(
+            f"""
             SELECT supplier, COUNT(*) AS count
             FROM component
-            WHERE supplier IS NOT NULL AND supplier <> ''
+            {('WHERE' if not where_sql else where_sql + ' AND')} supplier IS NOT NULL AND supplier <> ''
             GROUP BY supplier
             ORDER BY COUNT(*) DESC
             LIMIT 10
-        """)
+            """,
+            params,
+        )
         top_suppliers = cursor.fetchall()
 
         # Топ-15 included_in_name по сумме quantity
-        cursor.execute("""
+        cursor.execute(
+            f"""
             SELECT included_in_name, COALESCE(SUM(quantity), 0) AS total_quantity
             FROM component
-            WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+            {('WHERE' if not where_sql else where_sql + ' AND')} included_in_name IS NOT NULL AND included_in_name <> ''
             GROUP BY included_in_name
             ORDER BY COALESCE(SUM(quantity), 0) DESC
             LIMIT 15
-        """)
+            """,
+            params,
+        )
         quantity_by_included_in = cursor.fetchall()
 
         # Динамика по месяцам
-        cursor.execute("""
+        cursor.execute(
+            f"""
             SELECT
                 DATE_TRUNC('month', created_at) AS month,
                 COUNT(*) AS count
             FROM component
-            WHERE created_at IS NOT NULL
+            {('WHERE' if not where_sql else where_sql + ' AND')} created_at IS NOT NULL
             GROUP BY DATE_TRUNC('month', created_at)
             ORDER BY month
-        """)
+            """,
+            params,
+        )
         timeline_by_month = cursor.fetchall()
 
         cursor.close()
@@ -462,7 +486,10 @@ async def get_components_metrics() -> Dict[str, Any]:
             "unique_included_in_names": int(kpi_row.get("unique_included_in_names", 0) or 0),
         }
 
-        meta = {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}
+        meta = {
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "filter": {"included_in_name": included_in_name} if included_in_name else {}
+        }
 
         return {
             "kpi": kpi,
