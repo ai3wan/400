@@ -22,6 +22,7 @@
   .delta{font-size:12px;margin-top:4px}
   .delta.up{color:var(--c-teal)} .delta.down{color:var(--c-red)}
   .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px}
+  .charts-grid.components{margin-top:28px}
   .chart-card{min-height:400px}
   .chart-title{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--c-text)}
   .chart-container{width:100%;height:350px}
@@ -30,6 +31,10 @@
   select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
   .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
   .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
+  .embed-grid{display:grid;grid-template-columns:1fr;gap:20px;margin-top:28px}
+  .embed-card{background:var(--c-card);border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:16px}
+  .embed-title{font-size:18px;font-weight:600;margin-bottom:12px}
+  .embed-frame{width:100%;height:1800px;border:0;border-radius:12px;background:#fff}
 </style>
 </head>
 <body>
@@ -70,7 +75,7 @@
       </div>
     </div>
 
-    <!-- Charts -->
+    <!-- Charts: Suppliers/Companies -->
     <div class="charts-grid">
       <!-- Распределение по регионам -->
       <div class="card chart-card">
@@ -84,6 +89,41 @@
         <div id="riskChart" class="chart-container"></div>
       </div>
     </div>
+
+    <!-- Charts: Components (ниже дашборда по поставщикам) -->
+    <div class="charts-grid components">
+      <div class="card chart-card">
+        <div class="chart-title">Компоненты: Топ-15 включений (included_in_name)</div>
+        <div id="cmpTopIncluded" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Компоненты: распределение по типам (object_type)</div>
+        <div id="cmpByType" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Компоненты: топ поставщиков по числу позиций</div>
+        <div id="cmpTopSuppliers" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Компоненты: динамика по месяцам</div>
+        <div id="cmpTimeline" class="chart-container"></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Встраивание существующих страниц (сначала поставщики, потом компоненты) -->
+    <div class="embed-grid">
+      <div class="embed-card">
+        <div class="embed-title">Встроенный дашборд поставщиков</div>
+        <iframe class="embed-frame" src="/400/index_companies.html" referrerpolicy="no-referrer"></iframe>
+      </div>
+      <div class="embed-card">
+        <div class="embed-title">Встроенный дашборд компонентов</div>
+        <iframe class="embed-frame" src="/400/index_components.html" referrerpolicy="no-referrer"></iframe>
+      </div>
     </div>
   
   <!-- Loading indicator -->
@@ -96,6 +136,7 @@
 
 <script>
 let DATA = {};
+let CMP = {};
 
 async function loadData() {
   try {
@@ -109,6 +150,12 @@ async function loadData() {
     console.error('Ошибка загрузки данных:', error);
     throw error;
   }
+}
+
+async function loadComponents() {
+  const res = await fetch('/400/api/components/metrics');
+  if (!res.ok) throw new Error('HTTP '+res.status+' on components');
+  CMP = await res.json();
 }
 
 function setKPI() {
@@ -273,6 +320,53 @@ function regionChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
+function cmpTopIncludedChart() {
+  const el = echarts.init(document.getElementById('cmpTopIncluded'));
+  const data = CMP.top_included_in || [];
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.included_in_name || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function cmpByTypeChart() {
+  const el = echarts.init(document.getElementById('cmpByType'));
+  const data = CMP.by_object_type || [];
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    series: [{ type: 'pie', radius: ['40%','70%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 }, data: data.map(x => ({ name: x.object_type || 'Не указано', value: x.count||0 })) }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function cmpTopSuppliersChart() {
+  const el = echarts.init(document.getElementById('cmpTopSuppliers'));
+  const data = CMP.top_suppliers || [];
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.supplier || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
+function cmpTimelineChart() {
+  const el = echarts.init(document.getElementById('cmpTimeline'));
+  const data = CMP.timeline_by_month || [];
+  const labels = data.map(x => (x.month || '').slice(0,10));
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: labels },
+    yAxis: { type: 'value' },
+    series: [{ type: 'line', smooth: true, data: data.map(x => x.count||0) }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
 
 async function init() {
   try {
@@ -280,7 +374,7 @@ async function init() {
     
     // Загрузка данных из API
     console.log('Загружаем данные...');
-    await loadData();
+    await Promise.all([loadData(), loadComponents()]);
     console.log('Данные загружены:', DATA);
     
     // Инициализация всех графиков с индивидуальными try-catch
@@ -307,7 +401,13 @@ async function init() {
     } catch (e) {
       console.error('Ошибка в riskChart:', e);
     }
-    
+
+    // Компоненты: отрисовка
+    try { cmpTopIncludedChart(); } catch (e) { console.error(e); }
+    try { cmpByTypeChart(); } catch (e) { console.error(e); }
+    try { cmpTopSuppliersChart(); } catch (e) { console.error(e); }
+    try { cmpTimelineChart(); } catch (e) { console.error(e); }
+
     // Скрыть индикатор загрузки
     document.getElementById('loading').style.display = 'none';
     console.log('Инициализация завершена успешно');
