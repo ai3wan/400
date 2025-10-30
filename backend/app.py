@@ -364,6 +364,136 @@ async def get_dashboard_data() -> Dict[str, Any]:
         }
 
 
+@app.get("/api/components/metrics")
+async def get_components_metrics() -> Dict[str, Any]:
+    """Агрегированные метрики по таблице component"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # KPI
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS total_components,
+                COALESCE(SUM(quantity), 0) AS total_quantity,
+                COUNT(DISTINCT object_type) AS unique_object_types,
+                COUNT(DISTINCT included_in_name) AS unique_included_in_names
+            FROM component
+        """)
+        kpi_row = cursor.fetchone()
+
+        # Топ-15 included_in_name по количеству компонентов
+        cursor.execute("""
+            SELECT included_in_name, COUNT(*) AS count
+            FROM component
+            WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+            GROUP BY included_in_name
+            ORDER BY COUNT(*) DESC
+            LIMIT 15
+        """)
+        top_included_in = cursor.fetchall()
+
+        # Сколько групп вне топ-15
+        cursor.execute("""
+            SELECT COUNT(*) AS others_count
+            FROM (
+                SELECT included_in_name
+                FROM component
+                WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+                GROUP BY included_in_name
+                ORDER BY COUNT(*) DESC
+                OFFSET 15
+            ) t
+        """)
+        others_groups = cursor.fetchone() or {"others_count": 0}
+
+        # Распределение по типу объекта
+        cursor.execute("""
+            SELECT object_type, COUNT(*) AS count
+            FROM component
+            WHERE object_type IS NOT NULL AND object_type <> ''
+            GROUP BY object_type
+            ORDER BY COUNT(*) DESC
+            LIMIT 12
+        """)
+        by_object_type = cursor.fetchall()
+
+        # Топ-10 поставщиков
+        cursor.execute("""
+            SELECT supplier, COUNT(*) AS count
+            FROM component
+            WHERE supplier IS NOT NULL AND supplier <> ''
+            GROUP BY supplier
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+        """)
+        top_suppliers = cursor.fetchall()
+
+        # Топ-15 included_in_name по сумме quantity
+        cursor.execute("""
+            SELECT included_in_name, COALESCE(SUM(quantity), 0) AS total_quantity
+            FROM component
+            WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+            GROUP BY included_in_name
+            ORDER BY COALESCE(SUM(quantity), 0) DESC
+            LIMIT 15
+        """)
+        quantity_by_included_in = cursor.fetchall()
+
+        # Динамика по месяцам
+        cursor.execute("""
+            SELECT
+                DATE_TRUNC('month', created_at) AS month,
+                COUNT(*) AS count
+            FROM component
+            WHERE created_at IS NOT NULL
+            GROUP BY DATE_TRUNC('month', created_at)
+            ORDER BY month
+        """)
+        timeline_by_month = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        kpi = {
+            "total_components": int(kpi_row.get("total_components", 0) or 0),
+            "total_quantity": int(kpi_row.get("total_quantity", 0) or 0),
+            "unique_object_types": int(kpi_row.get("unique_object_types", 0) or 0),
+            "unique_included_in_names": int(kpi_row.get("unique_included_in_names", 0) or 0),
+        }
+
+        meta = {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}
+
+        return {
+            "kpi": kpi,
+            "top_included_in": top_included_in,
+            "others_groups": others_groups,
+            "by_object_type": by_object_type,
+            "top_suppliers": top_suppliers,
+            "quantity_by_included_in": quantity_by_included_in,
+            "timeline_by_month": timeline_by_month,
+            "meta": meta
+        }
+
+    except Exception as e:
+        print(f"Components metrics error: {e}")
+        return {
+            "kpi": {
+                "total_components": 0,
+                "total_quantity": 0,
+                "unique_object_types": 0,
+                "unique_included_in_names": 0
+            },
+            "top_included_in": [],
+            "others_groups": {"others_count": 0},
+            "by_object_type": [],
+            "top_suppliers": [],
+            "quantity_by_included_in": [],
+            "timeline_by_month": [],
+            "meta": {"generated_at": datetime.now().isoformat(), "error": str(e)}
+        }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
