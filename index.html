@@ -454,7 +454,7 @@ function cmpTreemapQuantityChart() {
     tooltip: { formatter: info => `${info.name}: ${info.value}` },
     series: [{
       type: 'treemap',
-      roam: true,
+      roam: false,
       nodeClick: false,
       breadcrumb: { show: false },
       label: { show: true, overflow: 'truncate' },
@@ -465,6 +465,11 @@ function cmpTreemapQuantityChart() {
       data
     }]
   });
+  // Block zoom gestures just in case
+  const zr = el.getZr();
+  const block = (ev) => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
+  zr.on('mousewheel', block);
+  zr.on('pinch', block);
   window.addEventListener('resize', () => el.resize());
 }
 
@@ -480,7 +485,7 @@ function cmpTreemapQuantityFullChart() {
     tooltip: { formatter: info => `${info.name}: ${info.value}` },
     series: [{
       type: 'treemap',
-      roam: true,
+      roam: false,
       nodeClick: false,
       breadcrumb: { show: false },
       label: { show: true, overflow: 'truncate' },
@@ -489,6 +494,11 @@ function cmpTreemapQuantityFullChart() {
       data
     }]
   });
+  // Block zoom gestures just in case
+  const zr = el.getZr();
+  const block = (ev) => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
+  zr.on('mousewheel', block);
+  zr.on('pinch', block);
   window.addEventListener('resize', () => el.resize());
 }
 
