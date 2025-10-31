@@ -448,6 +448,21 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
         )
         top_suppliers = cursor.fetchall()
 
+        # Топ-10 компаний по числу компонентов (через FK company_id → company.id)
+        cursor.execute(
+            f"""
+            SELECT COALESCE(c.short_name, 'Не указано') AS company_short_name, COUNT(*) AS count
+            FROM component comp
+            LEFT JOIN company c ON c.id = comp.company_id
+            {('WHERE' if not where_sql else where_sql.replace('included_in_name', 'comp.included_in_name') + ' AND')} 1=1
+            GROUP BY COALESCE(c.short_name, 'Не указано')
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+            """,
+            params,
+        )
+        top_companies = cursor.fetchall()
+
         # Топ-15 included_in_name по сумме quantity
         cursor.execute(
             f"""
@@ -498,6 +513,7 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
             "others_groups": others_groups,
             "by_object_type": by_object_type,
             "top_suppliers": top_suppliers,
+            "top_companies": top_companies,
             "quantity_by_included_in": quantity_by_included_in,
             "timeline_by_month": timeline_by_month,
             "meta": meta
@@ -516,10 +532,57 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
             "others_groups": {"others_count": 0},
             "by_object_type": [],
             "top_suppliers": [],
+            "top_companies": [],
             "quantity_by_included_in": [],
             "timeline_by_month": [],
             "meta": {"generated_at": datetime.now().isoformat(), "error": str(e)}
         }
+
+
+@app.get("/api/components/included-in-list")
+async def get_included_in_list(q: Optional[str] = None, limit: int = 1000) -> Dict[str, Any]:
+    """Вернуть список включений (included_in_name), упорядоченный по частоте.
+    Параметры:
+      - q: фильтр по подстроке (ILIKE)
+      - limit: максимальное число записей (по умолчанию 1000)
+    """
+    try:
+        limit = max(1, min(limit, 5000))
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        if q:
+            cursor.execute(
+                """
+                SELECT included_in_name, COUNT(*) AS count
+                FROM component
+                WHERE included_in_name IS NOT NULL AND included_in_name <> '' AND included_in_name ILIKE %s
+                GROUP BY included_in_name
+                ORDER BY COUNT(*) DESC, included_in_name ASC
+                LIMIT %s
+                """,
+                (f"%{q}%", limit),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT included_in_name, COUNT(*) AS count
+                FROM component
+                WHERE included_in_name IS NOT NULL AND included_in_name <> ''
+                GROUP BY included_in_name
+                ORDER BY COUNT(*) DESC, included_in_name ASC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return {"items": rows, "total": len(rows)}
+    except Exception as e:
+        print(f"Included-in list error: {e}")
+        return {"items": [], "total": 0, "error": str(e)}
 
 
 if __name__ == "__main__":

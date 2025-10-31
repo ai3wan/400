@@ -130,8 +130,8 @@
       </div>
 
       <div class="card chart-card">
-        <div class="chart-title">Компоненты: топ поставщиков по числу позиций</div>
-        <div id="cmpTopSuppliers" class="chart-container"></div>
+        <div class="chart-title">Компоненты: топ компаний по числу позиций</div>
+        <div id="cmpTopCompanies" class="chart-container"></div>
       </div>
 
       <div class="card chart-card">
@@ -375,14 +375,14 @@ function cmpByTypeChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
-function cmpTopSuppliersChart() {
-  const elDom = document.getElementById('cmpTopSuppliers');
+function cmpTopCompaniesChart() {
+  const elDom = document.getElementById('cmpTopCompanies');
   const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
   const el = echarts.init(elDom);
-  const data = CMP.top_suppliers || [];
+  const data = CMP.top_companies || [];
   el.setOption({
     tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: data.map(x => x.supplier || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    xAxis: { type: 'category', data: data.map(x => x.company_short_name || '—'), axisLabel: { interval: 0, rotate: 30 } },
     yAxis: { type: 'value' },
     series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
   });
@@ -443,13 +443,16 @@ async function init() {
     try { setCmpKPI(); } catch (e) { console.error(e); }
     try { cmpTopIncludedChart(); } catch (e) { console.error(e); }
     try { cmpByTypeChart(); } catch (e) { console.error(e); }
-    try { cmpTopSuppliersChart(); } catch (e) { console.error(e); }
+    try { cmpTopCompaniesChart(); } catch (e) { console.error(e); }
     try { cmpTimelineChart(); } catch (e) { console.error(e); }
 
-    // Наполнить селект включений (топ-15 из базовой выборки)
+    // Наполнить селект включений (все, упорядочено по частоте)
     try {
       const sel = document.getElementById('cmpFilter');
-      const list = (CMP_BASE.top_included_in || []).map(x => x.included_in_name).filter(Boolean);
+      sel.innerHTML = '<option value="">Загрузка...</option>';
+      const res = await fetch('/400/api/components/included-in-list?_ts=' + Date.now(), { cache: 'no-store' });
+      const payload = await res.json();
+      const list = (payload.items || []).map(x => x.included_in_name).filter(Boolean);
       sel.innerHTML = '<option value="">Все включения</option>' + list.map(n => `<option value="${n.replaceAll('"','&quot;')}">${n}</option>`).join('');
     } catch (e) { console.error(e); }
 
@@ -488,7 +491,7 @@ document.getElementById('cmpFilter').onchange = async (e) => {
     setCmpKPI();
     cmpTopIncludedChart();
     cmpByTypeChart();
-    cmpTopSuppliersChart();
+    cmpTopCompaniesChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
@@ -502,7 +505,7 @@ document.getElementById('cmpFilterReset').onclick = async () => {
     setCmpKPI();
     cmpTopIncludedChart();
     cmpByTypeChart();
-    cmpTopSuppliersChart();
+    cmpTopCompaniesChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
