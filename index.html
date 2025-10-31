@@ -174,6 +174,7 @@ let CMP = {};
 let CMP_BASE = {};
 let CMP_SELECTED = "";
 let CMP_COMPANY_ID = "";
+let CMP_SUPPLIER_FALLBACK = "";
 
 async function loadData() {
   try {
@@ -193,7 +194,11 @@ async function loadComponents() {
   const base = '/api/components/metrics';
   const params = [];
   if (CMP_SELECTED) params.push('included_in_name=' + encodeURIComponent(CMP_SELECTED));
-  if (CMP_COMPANY_ID) params.push('company_id=' + encodeURIComponent(CMP_COMPANY_ID));
+  if (CMP_COMPANY_ID) {
+    params.push('company_id=' + encodeURIComponent(CMP_COMPANY_ID));
+  } else if (CMP_SUPPLIER_FALLBACK) {
+    params.push('supplier=' + encodeURIComponent(CMP_SUPPLIER_FALLBACK));
+  }
   params.push('_ts=' + Date.now());
   const qs = '?' + params.join('&');
   const res = await fetch(base + qs, { cache: 'no-store' });
@@ -528,7 +533,13 @@ async function init() {
       } catch (err) {
         console.warn('Companies list endpoint unavailable, fallback to CMP.top_companies');
         const src = (CMP.top_companies && CMP.top_companies.length ? CMP.top_companies : (CMP_BASE.top_companies || []));
-        list = src.map(x => ({ id: String(x.company_id || ''), name: x.company_short_name })).filter(v => v.name);
+        // если нет company_id, используем short_name как supplier-фолбэк (с префиксом)
+        list = src.map(x => {
+          const nm = x.company_short_name;
+          const id = (x.company_id !== undefined && x.company_id !== null) ? String(x.company_id) : '';
+          if (id) return { id: 'id:' + id, name: nm };
+          return { id: 'supplier:' + nm, name: nm };
+        }).filter(v => v.name);
       }
       const safe = (s) => s.replace(/\"/g, '&quot;');
       sel.innerHTML = '<option value="">Все компании</option>' + list.map(it => `<option value="${safe(it.id)}">${safe(it.name)}</option>`).join('');
@@ -594,7 +605,17 @@ document.getElementById('cmpFilterReset').onclick = async () => {
 
 document.getElementById('cmpCompany').onchange = async (e) => {
   try {
-    CMP_COMPANY_ID = e.target.value || "";
+    const raw = e.target.value || "";
+    CMP_COMPANY_ID = "";
+    CMP_SUPPLIER_FALLBACK = "";
+    if (raw.startsWith('id:')) {
+      CMP_COMPANY_ID = raw.slice(3);
+    } else if (raw.startsWith('supplier:')) {
+      CMP_SUPPLIER_FALLBACK = raw.slice(9);
+    } else if (raw) {
+      // если пришло без префикса, считаем это short_name (фолбэк)
+      CMP_SUPPLIER_FALLBACK = raw;
+    }
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
@@ -611,6 +632,7 @@ document.getElementById('cmpCompanyReset').onclick = async () => {
     const sel = document.getElementById('cmpCompany');
     sel.value = "";
     CMP_COMPANY_ID = "";
+    CMP_SUPPLIER_FALLBACK = "";
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
