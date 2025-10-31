@@ -144,6 +144,11 @@
       </div>
 
       <div class="card chart-card">
+        <div class="chart-title">Компоненты: Топ-15 включений (included_in_name) — по выбранным фильтрам</div>
+        <div id="cmpTopIncludedFiltered" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
         <div class="chart-title">Компоненты: системы (included_in_object_type)</div>
         <div id="cmpBySystems" class="chart-container"></div>
       </div>
@@ -383,6 +388,20 @@ function cmpTopIncludedChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
+function cmpTopIncludedFilteredChart() {
+  const elDom = document.getElementById('cmpTopIncludedFiltered');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
+  const data = CMP.top_included_in || [];
+  el.setOption({
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map(x => x.included_in_name || '—'), axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: data.map(x => x.count||0), itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
 function cmpByTypeChart() {
   const elDom = document.getElementById('cmpByType');
   const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
@@ -474,6 +493,7 @@ async function init() {
     // Компоненты: KPI + графики
     try { setCmpKPI(); } catch (e) { console.error(e); }
     try { cmpTopIncludedChart(); } catch (e) { console.error(e); }
+    try { cmpTopIncludedFilteredChart(); } catch (e) { console.error(e); }
     try { cmpByTypeChart(); } catch (e) { console.error(e); }
     try { cmpTopCompaniesChart(); } catch (e) { console.error(e); }
     try { cmpBySystemsChart(); } catch (e) { console.error(e); }
@@ -548,6 +568,7 @@ document.getElementById('cmpFilter').onchange = async (e) => {
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
+    cmpTopIncludedFilteredChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
     cmpBySystemsChart();
@@ -563,6 +584,7 @@ document.getElementById('cmpFilterReset').onclick = async () => {
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
+    cmpTopIncludedFilteredChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
     cmpBySystemsChart();
@@ -576,6 +598,7 @@ document.getElementById('cmpCompany').onchange = async (e) => {
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
+    cmpTopIncludedFilteredChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
     cmpBySystemsChart();
@@ -591,6 +614,7 @@ document.getElementById('cmpCompanyReset').onclick = async () => {
     await loadComponents();
     setCmpKPI();
     cmpTopIncludedChart();
+    cmpTopIncludedFilteredChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
     cmpBySystemsChart();
