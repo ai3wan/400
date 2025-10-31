@@ -31,6 +31,8 @@
   select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
   .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
   .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
+  /* Disable native pinch/zoom on treemap containers */
+  #cmpTreemapQuantity, #cmpTreemapQuantityFull { touch-action: none; }
 </style>
 </head>
 <body>
@@ -465,11 +467,15 @@ function cmpTreemapQuantityChart() {
       data
     }]
   });
-  // Block zoom gestures just in case
+  // Hard-disable zoom/pinch/dblclick
   const zr = el.getZr();
-  const block = (ev) => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
-  zr.on('mousewheel', block);
-  zr.on('pinch', block);
+  const blockZR = ev => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
+  zr.on('mousewheel', blockZR);
+  zr.on('pinch', blockZR);
+  zr.on('dblclick', blockZR);
+  // Also block on container to prevent default browser behaviors
+  elDom.addEventListener('wheel', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  elDom.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
   window.addEventListener('resize', () => el.resize());
 }
 
@@ -494,11 +500,14 @@ function cmpTreemapQuantityFullChart() {
       data
     }]
   });
-  // Block zoom gestures just in case
+  // Hard-disable zoom/pinch/dblclick
   const zr = el.getZr();
-  const block = (ev) => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
-  zr.on('mousewheel', block);
-  zr.on('pinch', block);
+  const blockZR = ev => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
+  zr.on('mousewheel', blockZR);
+  zr.on('pinch', blockZR);
+  zr.on('dblclick', blockZR);
+  elDom.addEventListener('wheel', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+  elDom.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
   window.addEventListener('resize', () => el.resize());
 }
 
