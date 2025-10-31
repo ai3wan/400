@@ -365,18 +365,22 @@ async def get_dashboard_data() -> Dict[str, Any]:
 
 
 @app.get("/api/components/metrics")
-async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict[str, Any]:
+async def get_components_metrics(included_in_name: Optional[str] = None, supplier: Optional[str] = None) -> Dict[str, Any]:
     """Агрегированные метрики по таблице component"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Подготовка WHERE и параметров
-        where_sql = ""
+        where_clauses: List[str] = []
         params: List[Any] = []
         if included_in_name:
-            where_sql = " WHERE included_in_name = %s"
+            where_clauses.append("included_in_name = %s")
             params.append(included_in_name)
+        if supplier:
+            where_clauses.append("supplier = %s")
+            params.append(supplier)
+        where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
         # KPI
         cursor.execute(
@@ -433,6 +437,20 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
             params,
         )
         by_object_type = cursor.fetchall()
+
+        # Распределение по системам (included_in_object_type)
+        cursor.execute(
+            f"""
+            SELECT included_in_object_type AS system, COUNT(*) AS count
+            FROM component
+            {('WHERE' if not where_sql else where_sql + ' AND')} included_in_object_type IS NOT NULL AND included_in_object_type <> ''
+            GROUP BY included_in_object_type
+            ORDER BY COUNT(*) DESC
+            LIMIT 12
+            """,
+            params,
+        )
+        by_systems = cursor.fetchall()
 
         # Топ-10 поставщиков
         cursor.execute(
@@ -512,6 +530,7 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
             "top_included_in": top_included_in,
             "others_groups": others_groups,
             "by_object_type": by_object_type,
+            "by_systems": by_systems,
             "top_suppliers": top_suppliers,
             "top_companies": top_companies,
             "quantity_by_included_in": quantity_by_included_in,
@@ -531,6 +550,7 @@ async def get_components_metrics(included_in_name: Optional[str] = None) -> Dict
             "top_included_in": [],
             "others_groups": {"others_count": 0},
             "by_object_type": [],
+            "by_systems": [],
             "top_suppliers": [],
             "top_companies": [],
             "quantity_by_included_in": [],
@@ -582,6 +602,46 @@ async def get_included_in_list(q: Optional[str] = None, limit: int = 1000) -> Di
         return {"items": rows, "total": len(rows)}
     except Exception as e:
         print(f"Included-in list error: {e}")
+        return {"items": [], "total": 0, "error": str(e)}
+
+
+@app.get("/api/components/suppliers-list")
+async def get_suppliers_list(q: Optional[str] = None, limit: int = 1000) -> Dict[str, Any]:
+    """Вернуть список поставщиков, упорядоченный по частоте."""
+    try:
+        limit = max(1, min(limit, 5000))
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        if q:
+            cursor.execute(
+                """
+                SELECT supplier, COUNT(*) AS count
+                FROM component
+                WHERE supplier IS NOT NULL AND supplier <> '' AND supplier ILIKE %s
+                GROUP BY supplier
+                ORDER BY COUNT(*) DESC, supplier ASC
+                LIMIT %s
+                """,
+                (f"%{q}%", limit),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT supplier, COUNT(*) AS count
+                FROM component
+                WHERE supplier IS NOT NULL AND supplier <> ''
+                GROUP BY supplier
+                ORDER BY COUNT(*) DESC, supplier ASC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return {"items": rows, "total": len(rows)}
+    except Exception as e:
+        print(f"Suppliers list error: {e}")
         return {"items": [], "total": 0, "error": str(e)}
 
 

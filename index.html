@@ -117,6 +117,15 @@
       <button id="cmpFilterReset">Сбросить</button>
     </div>
 
+    <!-- Фильтр по поставщику -->
+    <div class="card" style="margin-bottom:20px;display:flex;gap:12px;align-items:center;">
+      <div style="font-weight:600;">Фильтр по поставщику (supplier):</div>
+      <select id="cmpSupplier" style="min-width:260px">
+        <option value="">Все поставщики</option>
+      </select>
+      <button id="cmpSupplierReset">Сбросить</button>
+    </div>
+
     <!-- Charts: Components (ниже дашборда по поставщикам) -->
     <div class="charts-grid components">
       <div class="card chart-card">
@@ -132,6 +141,11 @@
       <div class="card chart-card">
         <div class="chart-title">Компоненты: топ компаний по числу позиций</div>
         <div id="cmpTopCompanies" class="chart-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Компоненты: системы (included_in_object_type)</div>
+        <div id="cmpBySystems" class="chart-container"></div>
       </div>
 
       <div class="card chart-card">
@@ -154,6 +168,7 @@ let DATA = {};
 let CMP = {};
 let CMP_BASE = {};
 let CMP_SELECTED = "";
+let CMP_SUPPLIER = "";
 
 async function loadData() {
   try {
@@ -171,9 +186,11 @@ async function loadData() {
 
 async function loadComponents() {
   const base = '/api/components/metrics';
-  const qs = CMP_SELECTED
-    ? ('?included_in_name=' + encodeURIComponent(CMP_SELECTED) + '&_ts=' + Date.now())
-    : ('?_ts=' + Date.now());
+  const params = [];
+  if (CMP_SELECTED) params.push('included_in_name=' + encodeURIComponent(CMP_SELECTED));
+  if (CMP_SUPPLIER) params.push('supplier=' + encodeURIComponent(CMP_SUPPLIER));
+  params.push('_ts=' + Date.now());
+  const qs = '?' + params.join('&');
   const res = await fetch(base + qs, { cache: 'no-store' });
   const ct = res.headers.get('content-type') || '';
   if (!res.ok || !ct.includes('application/json')) {
@@ -378,6 +395,18 @@ function cmpByTypeChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
+function cmpBySystemsChart() {
+  const elDom = document.getElementById('cmpBySystems');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
+  const data = CMP.by_systems || [];
+  el.setOption({
+    tooltip: { trigger: 'item' },
+    series: [{ type: 'pie', radius: ['40%','70%'], itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 1 }, data: data.map(x => ({ name: x.system || 'Не указано', value: x.count||0 })) }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
 function cmpTopCompaniesChart() {
   const elDom = document.getElementById('cmpTopCompanies');
   const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
@@ -447,6 +476,7 @@ async function init() {
     try { cmpTopIncludedChart(); } catch (e) { console.error(e); }
     try { cmpByTypeChart(); } catch (e) { console.error(e); }
     try { cmpTopCompaniesChart(); } catch (e) { console.error(e); }
+    try { cmpBySystemsChart(); } catch (e) { console.error(e); }
     try { cmpTimelineChart(); } catch (e) { console.error(e); }
 
     // Наполнить селект включений (все, упорядочено по частоте)
@@ -462,6 +492,21 @@ async function init() {
       const list = (payload.items || []).map(x => x.included_in_name).filter(v => typeof v === 'string' && v.length);
       const safe = (s) => s.replace(/"/g, '&quot;');
       sel.innerHTML = '<option value="">Все включения</option>' + list.map(n => `<option value="${safe(n)}">${safe(n)}</option>`).join('');
+    } catch (e) { console.error(e); }
+
+    // Наполнить селект поставщиков
+    try {
+      const sel = document.getElementById('cmpSupplier');
+      sel.innerHTML = '<option value="">Загрузка...</option>';
+      const res = await fetch('/api/components/suppliers-list?_ts=' + Date.now(), { cache: 'no-store' });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok || !ct.includes('application/json')) {
+        throw new Error('Suppliers list: non-JSON response');
+      }
+      const payload = await res.json();
+      const list = (payload.items || []).map(x => x.supplier).filter(v => typeof v === 'string' && v.length);
+      const safe = (s) => s.replace(/"/g, '&quot;');
+      sel.innerHTML = '<option value="">Все поставщики</option>' + list.map(n => `<option value="${safe(n)}">${safe(n)}</option>`).join('');
     } catch (e) { console.error(e); }
 
     // Скрыть индикатор загрузки
@@ -500,6 +545,7 @@ document.getElementById('cmpFilter').onchange = async (e) => {
     cmpTopIncludedChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
+    cmpBySystemsChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
@@ -514,6 +560,35 @@ document.getElementById('cmpFilterReset').onclick = async () => {
     cmpTopIncludedChart();
     cmpByTypeChart();
     cmpTopCompaniesChart();
+    cmpBySystemsChart();
+    cmpTimelineChart();
+  } catch (err) { console.error(err); }
+};
+
+document.getElementById('cmpSupplier').onchange = async (e) => {
+  try {
+    CMP_SUPPLIER = e.target.value || "";
+    await loadComponents();
+    setCmpKPI();
+    cmpTopIncludedChart();
+    cmpByTypeChart();
+    cmpTopCompaniesChart();
+    cmpBySystemsChart();
+    cmpTimelineChart();
+  } catch (err) { console.error(err); }
+};
+
+document.getElementById('cmpSupplierReset').onclick = async () => {
+  try {
+    const sel = document.getElementById('cmpSupplier');
+    sel.value = "";
+    CMP_SUPPLIER = "";
+    await loadComponents();
+    setCmpKPI();
+    cmpTopIncludedChart();
+    cmpByTypeChart();
+    cmpTopCompaniesChart();
+    cmpBySystemsChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
