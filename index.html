@@ -38,12 +38,27 @@
 </style>
 </head>
 <body>
-<div class="container">
+  <!-- Auth Overlay -->
+  <div id="authOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:99999;">
+    <div style="background:var(--c-card);padding:28px 24px;border-radius:16px;min-width:320px;max-width:420px;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:14px;">Вход</div>
+      <div style="font-size:13px;opacity:0.8;margin-bottom:12px;">Введите пароль для доступа к дашборду</div>
+      <input id="authInput" type="password" placeholder="Пароль" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.1);background:var(--c-card);color:var(--c-text);margin-bottom:12px;">
+      <div style="display:flex;gap:10px;">
+        <button id="authSubmit" style="flex:1;">Войти</button>
+        <button id="authReset" style="">Сброс</button>
+      </div>
+      <div id="authError" style="color:var(--c-red);font-size:12px;margin-top:8px;display:none;">Неверный пароль</div>
+    </div>
+  </div>
+
+  <div class="container" id="appContainer" style="display:none;">
     <div class="header">
       <h1 class="title">Центр мониторинга ВСМ400</h1>
       <div class="controls">
         <button id="themeBtn">🌙</button>
         <button id="refreshBtn">🔄</button>
+        <button id="logoutBtn" title="Выйти">🚪</button>
     </div>
     </div>
 
@@ -184,6 +199,41 @@
   </div>
 
 <script>
+// --- Simple front-only auth gate ---
+const AUTH_KEY = 'vsm400_auth_ok';
+const AUTH_PASS = 'vsm400'; // Задайте свой простой пароль здесь
+function showApp() {
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('appContainer').style.display = '';
+}
+function showAuth() {
+  document.getElementById('appContainer').style.display = 'none';
+  document.getElementById('authOverlay').style.display = 'flex';
+}
+function initAuth() {
+  const ok = localStorage.getItem(AUTH_KEY) === '1';
+  if (ok) { showApp(); } else { showAuth(); }
+  document.getElementById('authSubmit').onclick = () => {
+    const v = (document.getElementById('authInput').value || '').trim();
+    if (v === AUTH_PASS) {
+      localStorage.setItem(AUTH_KEY, '1');
+      showApp();
+      init();
+    } else {
+      const e = document.getElementById('authError'); e.style.display = '';
+      setTimeout(() => e.style.display = 'none', 1500);
+    }
+  };
+  document.getElementById('authReset').onclick = () => {
+    document.getElementById('authInput').value = '';
+  };
+  document.getElementById('logoutBtn').onclick = () => {
+    localStorage.removeItem(AUTH_KEY);
+    location.reload();
+  };
+}
+// --- end auth ---
+
 let DATA = {};
 let CMP = {};
 let CMP_BASE = {};
@@ -722,8 +772,9 @@ document.getElementById('cmpCompanyReset').onclick = async () => {
   } catch (err) { console.error(err); }
 };
 
-// Запуск при загрузке страницы
-init();
+// Запуск: сначала аутентификация, затем инициализация
+initAuth();
+if (localStorage.getItem(AUTH_KEY) === '1') { init(); }
 </script>
 </body>
 </html>
