@@ -163,6 +163,12 @@
         <div id="cmpTimeline" class="chart-container"></div>
       </div>
     </div>
+
+    <!-- Full-width Treemap -->
+    <div class="card" style="margin-top:20px;">
+      <div class="chart-title">Компоненты: Treemap по quantity (полноэкранный блок)</div>
+      <div id="cmpTreemapQuantityFull" style="width:100%;height:620px"></div>
+    </div>
     </div>
   
   <!-- Loading indicator -->
@@ -462,6 +468,30 @@ function cmpTreemapQuantityChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
+function cmpTreemapQuantityFullChart() {
+  const elDom = document.getElementById('cmpTreemapQuantityFull');
+  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
+  const el = echarts.init(elDom);
+  const data = (CMP.quantity_by_included_in || []).map(x => ({
+    name: x.included_in_name || '—',
+    value: Number(x.total_quantity || 0)
+  })).filter(d => d.value > 0);
+  el.setOption({
+    tooltip: { formatter: info => `${info.name}: ${info.value}` },
+    series: [{
+      type: 'treemap',
+      roam: true,
+      nodeClick: false,
+      breadcrumb: { show: false },
+      label: { show: true, overflow: 'truncate' },
+      upperLabel: { show: false },
+      levels: [{ itemStyle: { borderColor: '#fff', borderWidth: 1, gapWidth: 3 } }],
+      data
+    }]
+  });
+  window.addEventListener('resize', () => el.resize());
+}
+
 function cmpTopCompaniesChart() {
   const elDom = document.getElementById('cmpTopCompanies');
   const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
@@ -534,6 +564,7 @@ async function init() {
     try { cmpTopCompaniesChart(); } catch (e) { console.error(e); }
     try { cmpBySystemsChart(); } catch (e) { console.error(e); }
     try { cmpTreemapQuantityChart(); } catch (e) { console.error(e); }
+    try { cmpTreemapQuantityFullChart(); } catch (e) { console.error(e); }
     try { cmpTimelineChart(); } catch (e) { console.error(e); }
 
     // Наполнить селект включений (все, упорядочено по частоте)
@@ -616,6 +647,7 @@ document.getElementById('cmpFilter').onchange = async (e) => {
     cmpTopCompaniesChart();
     cmpBySystemsChart();
     cmpTreemapQuantityChart();
+    cmpTreemapQuantityFullChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
@@ -633,6 +665,7 @@ document.getElementById('cmpFilterReset').onclick = async () => {
     cmpTopCompaniesChart();
     cmpBySystemsChart();
     cmpTreemapQuantityChart();
+    cmpTreemapQuantityFullChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
@@ -658,6 +691,7 @@ document.getElementById('cmpCompany').onchange = async (e) => {
     cmpTopCompaniesChart();
     cmpBySystemsChart();
     cmpTreemapQuantityChart();
+    cmpTreemapQuantityFullChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
@@ -676,6 +710,7 @@ document.getElementById('cmpCompanyReset').onclick = async () => {
     cmpTopCompaniesChart();
     cmpBySystemsChart();
     cmpTreemapQuantityChart();
+    cmpTreemapQuantityFullChart();
     cmpTimelineChart();
   } catch (err) { console.error(err); }
 };
