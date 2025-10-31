@@ -365,7 +365,7 @@ async def get_dashboard_data() -> Dict[str, Any]:
 
 
 @app.get("/api/components/metrics")
-async def get_components_metrics(included_in_name: Optional[str] = None, supplier: Optional[str] = None) -> Dict[str, Any]:
+async def get_components_metrics(included_in_name: Optional[str] = None, supplier: Optional[str] = None, company_id: Optional[int] = None) -> Dict[str, Any]:
     """Агрегированные метрики по таблице component"""
     try:
         conn = get_db_connection()
@@ -375,11 +375,14 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         where_clauses: List[str] = []
         params: List[Any] = []
         if included_in_name:
-            where_clauses.append("included_in_name = %s")
+            where_clauses.append("comp.included_in_name = %s")
             params.append(included_in_name)
         if supplier:
-            where_clauses.append("supplier = %s")
+            where_clauses.append("comp.supplier = %s")
             params.append(supplier)
+        if company_id is not None:
+            where_clauses.append("comp.company_id = %s")
+            params.append(company_id)
         where_sql = (" WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
         # KPI
@@ -427,10 +430,10 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         # Распределение по типу объекта
         cursor.execute(
             f"""
-            SELECT object_type, COUNT(*) AS count
-            FROM component
-            {('WHERE' if not where_sql else where_sql + ' AND')} object_type IS NOT NULL AND object_type <> ''
-            GROUP BY object_type
+            SELECT comp.object_type, COUNT(*) AS count
+            FROM component comp
+            {('WHERE' if not where_sql else where_sql + ' AND')} comp.object_type IS NOT NULL AND comp.object_type <> ''
+            GROUP BY comp.object_type
             ORDER BY COUNT(*) DESC
             LIMIT 12
             """,
@@ -441,10 +444,10 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         # Распределение по системам (included_in_object_type)
         cursor.execute(
             f"""
-            SELECT included_in_object_type AS system, COUNT(*) AS count
-            FROM component
-            {('WHERE' if not where_sql else where_sql + ' AND')} included_in_object_type IS NOT NULL AND included_in_object_type <> ''
-            GROUP BY included_in_object_type
+            SELECT comp.included_in_object_type AS system, COUNT(*) AS count
+            FROM component comp
+            {('WHERE' if not where_sql else where_sql + ' AND')} comp.included_in_object_type IS NOT NULL AND comp.included_in_object_type <> ''
+            GROUP BY comp.included_in_object_type
             ORDER BY COUNT(*) DESC
             LIMIT 12
             """,
@@ -455,10 +458,10 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         # Топ-10 поставщиков
         cursor.execute(
             f"""
-            SELECT supplier, COUNT(*) AS count
-            FROM component
-            {('WHERE' if not where_sql else where_sql + ' AND')} supplier IS NOT NULL AND supplier <> ''
-            GROUP BY supplier
+            SELECT comp.supplier, COUNT(*) AS count
+            FROM component comp
+            {('WHERE' if not where_sql else where_sql + ' AND')} comp.supplier IS NOT NULL AND comp.supplier <> ''
+            GROUP BY comp.supplier
             ORDER BY COUNT(*) DESC
             LIMIT 10
             """,
@@ -469,11 +472,11 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         # Топ-10 компаний по числу компонентов (через FK company_id → company.id)
         cursor.execute(
             f"""
-            SELECT COALESCE(c.short_name, 'Не указано') AS company_short_name, COUNT(*) AS count
+            SELECT COALESCE(c.short_name, 'Не указано') AS company_short_name, COUNT(*) AS count, c.id AS company_id
             FROM component comp
             LEFT JOIN company c ON c.id = comp.company_id
-            {('WHERE' if not where_sql else where_sql.replace('included_in_name', 'comp.included_in_name') + ' AND')} 1=1
-            GROUP BY COALESCE(c.short_name, 'Не указано')
+            {where_sql}
+            GROUP BY COALESCE(c.short_name, 'Не указано'), c.id
             ORDER BY COUNT(*) DESC
             LIMIT 10
             """,
@@ -484,11 +487,11 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         # Топ-15 included_in_name по сумме quantity
         cursor.execute(
             f"""
-            SELECT included_in_name, COALESCE(SUM(quantity), 0) AS total_quantity
-            FROM component
-            {('WHERE' if not where_sql else where_sql + ' AND')} included_in_name IS NOT NULL AND included_in_name <> ''
-            GROUP BY included_in_name
-            ORDER BY COALESCE(SUM(quantity), 0) DESC
+            SELECT comp.included_in_name, COALESCE(SUM(comp.quantity), 0) AS total_quantity
+            FROM component comp
+            {('WHERE' if not where_sql else where_sql + ' AND')} comp.included_in_name IS NOT NULL AND comp.included_in_name <> ''
+            GROUP BY comp.included_in_name
+            ORDER BY COALESCE(SUM(comp.quantity), 0) DESC
             LIMIT 15
             """,
             params,
@@ -499,11 +502,11 @@ async def get_components_metrics(included_in_name: Optional[str] = None, supplie
         cursor.execute(
             f"""
             SELECT
-                DATE_TRUNC('month', created_at) AS month,
+                DATE_TRUNC('month', comp.created_at) AS month,
                 COUNT(*) AS count
-            FROM component
-            {('WHERE' if not where_sql else where_sql + ' AND')} created_at IS NOT NULL
-            GROUP BY DATE_TRUNC('month', created_at)
+            FROM component comp
+            {('WHERE' if not where_sql else where_sql + ' AND')} comp.created_at IS NOT NULL
+            GROUP BY DATE_TRUNC('month', comp.created_at)
             ORDER BY month
             """,
             params,
@@ -642,6 +645,45 @@ async def get_suppliers_list(q: Optional[str] = None, limit: int = 1000) -> Dict
         return {"items": rows, "total": len(rows)}
     except Exception as e:
         print(f"Suppliers list error: {e}")
+        return {"items": [], "total": 0, "error": str(e)}
+
+
+@app.get("/api/components/companies-list")
+async def get_companies_list(q: Optional[str] = None, limit: int = 1000) -> Dict[str, Any]:
+    try:
+        limit = max(1, min(limit, 5000))
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        if q:
+            cursor.execute(
+                """
+                SELECT c.id AS company_id, c.short_name, COUNT(*) AS count
+                FROM component comp
+                JOIN company c ON c.id = comp.company_id
+                WHERE c.short_name ILIKE %s
+                GROUP BY c.id, c.short_name
+                ORDER BY COUNT(*) DESC, c.short_name ASC
+                LIMIT %s
+                """,
+                (f"%{q}%", limit),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT c.id AS company_id, c.short_name, COUNT(*) AS count
+                FROM component comp
+                JOIN company c ON c.id = comp.company_id
+                GROUP BY c.id, c.short_name
+                ORDER BY COUNT(*) DESC, c.short_name ASC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+        rows = cursor.fetchall()
+        cursor.close(); conn.close()
+        return {"items": rows, "total": len(rows)}
+    except Exception as e:
+        print(f"Companies list error: {e}")
         return {"items": [], "total": 0, "error": str(e)}
 
 
