@@ -494,18 +494,23 @@ async function init() {
       sel.innerHTML = '<option value="">Все включения</option>' + list.map(n => `<option value="${safe(n)}">${safe(n)}</option>`).join('');
     } catch (e) { console.error(e); }
 
-    // Наполнить селект поставщиков
+    // Наполнить селект поставщиков (с фолбэком на CMP.top_suppliers)
     try {
       const sel = document.getElementById('cmpSupplier');
       sel.innerHTML = '<option value="">Загрузка...</option>';
-      const res = await fetch('/api/components/suppliers-list?_ts=' + Date.now(), { cache: 'no-store' });
-      const ct = res.headers.get('content-type') || '';
-      if (!res.ok || !ct.includes('application/json')) {
-        throw new Error('Suppliers list: non-JSON response');
+      let list = [];
+      try {
+        const res = await fetch('/api/components/suppliers-list?_ts=' + Date.now(), { cache: 'no-store' });
+        const ct = res.headers.get('content-type') || '';
+        if (!res.ok || !ct.includes('application/json')) throw new Error('Suppliers list: non-JSON');
+        const payload = await res.json();
+        list = (payload.items || []).map(x => x.supplier).filter(v => typeof v === 'string' && v.length);
+      } catch (err) {
+        console.warn('Suppliers list endpoint unavailable, fallback to CMP.top_suppliers');
+        const src = (CMP.top_suppliers && CMP.top_suppliers.length ? CMP.top_suppliers : (CMP_BASE.top_suppliers || []));
+        list = src.map(x => x.supplier).filter(v => typeof v === 'string' && v.length);
       }
-      const payload = await res.json();
-      const list = (payload.items || []).map(x => x.supplier).filter(v => typeof v === 'string' && v.length);
-      const safe = (s) => s.replace(/"/g, '&quot;');
+      const safe = (s) => s.replace(/\"/g, '&quot;');
       sel.innerHTML = '<option value="">Все поставщики</option>' + list.map(n => `<option value="${safe(n)}">${safe(n)}</option>`).join('');
     } catch (e) { console.error(e); }
 
