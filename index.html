@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Центр мониторинга ВСМ400</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
 <style>
   :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
   [data-theme="dark"]{--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
@@ -31,8 +33,8 @@
   select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
   .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
   .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
-  /* Disable native pinch/zoom on treemap containers */
-  #cmpTreemapQuantity, #cmpTreemapQuantityFull { touch-action: none; }
+  /* Disable native pinch/zoom on treemap canvases (Chart.js is non-zoom by default as events=[]) */
+  #cmpTreemapQuantityCanvas, #cmpTreemapQuantityFullCanvas { touch-action: none; }
 </style>
 </head>
 <body>
@@ -157,7 +159,7 @@
 
       <div class="card chart-card">
         <div class="chart-title">Компоненты: Treemap по quantity (included_in_name)</div>
-        <div id="cmpTreemapQuantity" class="chart-container"></div>
+        <div class="chart-container"><canvas id="cmpTreemapQuantityCanvas"></canvas></div>
       </div>
 
       <div class="card chart-card">
@@ -169,7 +171,7 @@
     <!-- Full-width Treemap -->
     <div class="card" style="margin-top:20px;">
       <div class="chart-title">Компоненты: Treemap по quantity (полноэкранный блок)</div>
-      <div id="cmpTreemapQuantityFull" style="width:100%;height:620px"></div>
+      <div style="width:100%;height:620px"><canvas id="cmpTreemapQuantityFullCanvas" style="width:100%;height:100%"></canvas></div>
     </div>
     </div>
   
@@ -444,73 +446,57 @@ function cmpBySystemsChart() {
   window.addEventListener('resize', () => el.resize());
 }
 
+let CHARTS = {};
 function cmpTreemapQuantityChart() {
-  const elDom = document.getElementById('cmpTreemapQuantity');
-  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
-  const el = echarts.init(elDom);
-  const data = (CMP.quantity_by_included_in || []).map(x => ({
-    name: x.included_in_name || '—',
-    value: Number(x.total_quantity || 0)
-  })).filter(d => d.value > 0);
-  el.setOption({
-    tooltip: { formatter: info => `${info.name}: ${info.value}` },
-    series: [{
-      type: 'treemap',
-      roam: false,
-      silent: true,
-      nodeClick: false,
-      breadcrumb: { show: false },
-      label: { show: true, overflow: 'truncate' },
-      upperLabel: { show: false },
-      levels: [{
-        itemStyle: { borderColor: '#fff', borderWidth: 1, gapWidth: 2 }
-      }],
-      data
-    }]
+  const ctx = document.getElementById('cmpTreemapQuantityCanvas').getContext('2d');
+  if (CHARTS.cmpTreemapQuantity) { CHARTS.cmpTreemapQuantity.destroy(); }
+  const tree = (CMP.quantity_by_included_in || [])
+    .map(x => ({ v: Number(x.total_quantity || 0), l: x.included_in_name || '—' }))
+    .filter(x => x.v > 0);
+  CHARTS.cmpTreemapQuantity = new Chart(ctx, {
+    type: 'treemap',
+    data: { datasets: [{
+      tree: tree.map(t => ({ value: t.v, label: t.l })),
+      key: 'value',
+      labels: { display: true, formatter: ctx => ctx.raw.label },
+      backgroundColor: 'rgba(37,99,235,0.6)',
+      borderColor: '#fff',
+      borderWidth: 1
+    }]},
+    options: {
+      events: [],
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true, callbacks: { label: (c) => `${c.raw.label}: ${c.raw.value}` } }
+      }
+    }
   });
-  // Hard-disable zoom/pinch/dblclick
-  const zr = el.getZr();
-  const blockZR = ev => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
-  zr.on('mousewheel', blockZR);
-  zr.on('pinch', blockZR);
-  zr.on('dblclick', blockZR);
-  // Also block on container to prevent default browser behaviors
-  elDom.addEventListener('wheel', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  elDom.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  window.addEventListener('resize', () => el.resize());
 }
 
 function cmpTreemapQuantityFullChart() {
-  const elDom = document.getElementById('cmpTreemapQuantityFull');
-  const prev = echarts.getInstanceByDom(elDom); if (prev) prev.dispose();
-  const el = echarts.init(elDom);
-  const data = (CMP.quantity_by_included_in || []).map(x => ({
-    name: x.included_in_name || '—',
-    value: Number(x.total_quantity || 0)
-  })).filter(d => d.value > 0);
-  el.setOption({
-    tooltip: { formatter: info => `${info.name}: ${info.value}` },
-    series: [{
-      type: 'treemap',
-      roam: false,
-      silent: true,
-      nodeClick: false,
-      breadcrumb: { show: false },
-      label: { show: true, overflow: 'truncate' },
-      upperLabel: { show: false },
-      levels: [{ itemStyle: { borderColor: '#fff', borderWidth: 1, gapWidth: 3 } }],
-      data
-    }]
+  const ctx = document.getElementById('cmpTreemapQuantityFullCanvas').getContext('2d');
+  if (CHARTS.cmpTreemapQuantityFull) { CHARTS.cmpTreemapQuantityFull.destroy(); }
+  const tree = (CMP.quantity_by_included_in || [])
+    .map(x => ({ v: Number(x.total_quantity || 0), l: x.included_in_name || '—' }))
+    .filter(x => x.v > 0);
+  CHARTS.cmpTreemapQuantityFull = new Chart(ctx, {
+    type: 'treemap',
+    data: { datasets: [{
+      tree: tree.map(t => ({ value: t.v, label: t.l })),
+      key: 'value',
+      labels: { display: true, formatter: ctx => ctx.raw.label },
+      backgroundColor: 'rgba(22,189,202,0.6)',
+      borderColor: '#fff',
+      borderWidth: 1
+    }]},
+    options: {
+      events: [],
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true, callbacks: { label: (c) => `${c.raw.label}: ${c.raw.value}` } }
+      }
+    }
   });
-  // Hard-disable zoom/pinch/dblclick
-  const zr = el.getZr();
-  const blockZR = ev => { if (ev && ev.event) { ev.event.preventDefault(); ev.event.stopPropagation(); } };
-  zr.on('mousewheel', blockZR);
-  zr.on('pinch', blockZR);
-  zr.on('dblclick', blockZR);
-  elDom.addEventListener('wheel', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  elDom.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-  window.addEventListener('resize', () => el.resize());
 }
 
 function cmpTopCompaniesChart() {
