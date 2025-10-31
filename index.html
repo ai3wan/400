@@ -170,12 +170,15 @@ async function loadData() {
 }
 
 async function loadComponents() {
-  const base = '/400/api/components/metrics';
-  const params = new URLSearchParams();
-  if (CMP_SELECTED) params.set('included_in_name', CMP_SELECTED);
-  params.set('_ts', String(Date.now())); // cache busting
-  const res = await fetch(base + '?' + params.toString(), { cache: 'no-store' });
-  if (!res.ok) throw new Error('HTTP '+res.status+' on components');
+  const base = '/api/components/metrics';
+  const qs = CMP_SELECTED
+    ? ('?included_in_name=' + encodeURIComponent(CMP_SELECTED) + '&_ts=' + Date.now())
+    : ('?_ts=' + Date.now());
+  const res = await fetch(base + qs, { cache: 'no-store' });
+  const ct = res.headers.get('content-type') || '';
+  if (!res.ok || !ct.includes('application/json')) {
+    throw new Error('Components: non-JSON response');
+  }
   CMP = await res.json();
 }
 
@@ -450,10 +453,15 @@ async function init() {
     try {
       const sel = document.getElementById('cmpFilter');
       sel.innerHTML = '<option value="">Загрузка...</option>';
-      const res = await fetch('/400/api/components/included-in-list?_ts=' + Date.now(), { cache: 'no-store' });
+      const res = await fetch('/api/components/included-in-list?_ts=' + Date.now(), { cache: 'no-store' });
+      const ct = res.headers.get('content-type') || '';
+      if (!res.ok || !ct.includes('application/json')) {
+        throw new Error('Included list: non-JSON response');
+      }
       const payload = await res.json();
-      const list = (payload.items || []).map(x => x.included_in_name).filter(Boolean);
-      sel.innerHTML = '<option value="">Все включения</option>' + list.map(n => `<option value="${n.replaceAll('"','&quot;')}">${n}</option>`).join('');
+      const list = (payload.items || []).map(x => x.included_in_name).filter(v => typeof v === 'string' && v.length);
+      const safe = (s) => s.replace(/"/g, '&quot;');
+      sel.innerHTML = '<option value="">Все включения</option>' + list.map(n => `<option value="${safe(n)}">${safe(n)}</option>`).join('');
     } catch (e) { console.error(e); }
 
     // Скрыть индикатор загрузки
