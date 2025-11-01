@@ -616,6 +616,7 @@
         incidents: Math.floor(Math.random() * 3)
       }));
 
+      const componentNames = ['Редуктор', 'Трансформатор', 'Инвертор', 'Конденсатор', 'Датчик', 'Клапан', 'Кабель', 'Панель управления', 'Блок питания', 'Контроллер', 'Мотор', 'Компрессор', 'Фильтр', 'Радиатор', 'Шасси', 'Корпус', 'Разъём', 'Реле', 'Предохранитель', 'Термодатчик'];
       const components = [];
       for (let i = 0; i < 3200; i++) {
         const node = nodes[Math.floor(Math.random() * nodes.length)];
@@ -627,7 +628,7 @@
 
         components.push({
           id: i + 1,
-          name: `Компонент ${i + 1}`,
+          name: `${componentNames[i % componentNames.length]} ${Math.floor(i / componentNames.length) + 1}`,
           supplier: supplier.name,
           system: node.systemName,
           systemId: node.system,
@@ -1042,26 +1043,47 @@
     }
 
     function renderComponentsTable() {
-      const tbody = document.getElementById('components-table-body');
-      if (!tbody) return;
-      const filtered = DATA.components.slice(0, 500); // показываем первые 500 для производительности
-      tbody.innerHTML = filtered.map(c => {
-        const statusClass = c.status === 'delay' ? 'delay' : c.status === 'test' ? 'test' : 'ok';
-        const statusText = c.status === 'delay' ? 'Задержка' : c.status === 'test' ? 'Тест' : 'В графике';
-        const stageText = { supply: 'Поставка', rnd: 'ОКР', test: 'Испытания', integration: 'Интеграция' }[c.stage];
-        return `<tr>
-          <td>${c.name}</td>
-          <td>${c.supplier}</td>
-          <td>${c.system} / ${c.node}</td>
-          <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-          <td>${stageText}</td>
-          <td>${c.planDate}</td>
-          <td>${c.factDate}</td>
-          <td style="color: ${c.deviation > 0 ? '#ef4444' : '#10b981'}">${c.deviation > 0 ? '+' : ''}${c.deviation}</td>
-          <td>${c.audit.toFixed(1)}</td>
-          <td>${(c.cost / 1000).toFixed(0)} тыс ₽</td>
-        </tr>`;
-      }).join('');
+      try {
+        const tbody = document.getElementById('components-table-body');
+        if (!tbody) {
+          console.error('components-table-body not found');
+          return;
+        }
+        if (!DATA || !DATA.components || DATA.components.length === 0) {
+          console.error('DATA.components is empty', DATA);
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#64748b;">Данные компонентов загружаются...</td></tr>';
+          return;
+        }
+        const filtered = DATA.components.slice(0, 500); // показываем первые 500 для производительности
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#64748b;">Нет данных для отображения</td></tr>';
+          return;
+        }
+        tbody.innerHTML = filtered.map(c => {
+          const statusClass = c.status === 'delay' ? 'delay' : c.status === 'test' ? 'test' : 'ok';
+          const statusText = c.status === 'delay' ? 'Задержка' : c.status === 'test' ? 'Тест' : 'В графике';
+          const stageText = { supply: 'Поставка', rnd: 'ОКР', test: 'Испытания', integration: 'Интеграция' }[c.stage] || 'Не указано';
+          return `<tr>
+            <td>${c.name || '—'}</td>
+            <td>${c.supplier || '—'}</td>
+            <td>${c.system || '—'} / ${c.node || '—'}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>${stageText}</td>
+            <td>${c.planDate || '—'}</td>
+            <td>${c.factDate || '—'}</td>
+            <td style="color: ${c.deviation > 0 ? '#ef4444' : '#10b981'}">${c.deviation > 0 ? '+' : ''}${c.deviation || 0}</td>
+            <td>${c.audit ? c.audit.toFixed(1) : '—'}</td>
+            <td>${c.cost ? (c.cost / 1000).toFixed(0) + ' тыс ₽' : '—'}</td>
+          </tr>`;
+        }).join('');
+        console.log(`Rendered ${filtered.length} components`);
+      } catch (error) {
+        console.error('Error rendering components table:', error);
+        const tbody = document.getElementById('components-table-body');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Ошибка загрузки данных компонентов</td></tr>';
+        }
+      }
     }
 
     function populateFilters() {
@@ -1111,6 +1133,7 @@
 
     // Инициализация
     window.addEventListener('load', () => {
+      console.log('Initializing dashboard, components count:', DATA?.components?.length || 0);
       document.querySelectorAll('.section').forEach(s => observer.observe(s));
       renderKPISparks();
       renderSystemsChart();
@@ -1128,7 +1151,10 @@
       renderRisksDensity();
       renderFinanceTable();
       renderRisksTable();
-      renderComponentsTable();
+      // Отложенный рендеринг компонентов для надежности
+      setTimeout(() => {
+        renderComponentsTable();
+      }, 100);
       populateFilters();
 
       // Auto refresh every 10 minutes
