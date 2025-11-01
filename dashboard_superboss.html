@@ -9,13 +9,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
+      background: #F3DCE7;
+      color: #2A3043;
       font-size: 16px;
       line-height: 1.6;
     }
     .header {
-      background: linear-gradient(135deg, #0099CC 0%, #3B82F6 100%);
+      background: linear-gradient(135deg, #135457 0%, #038681 100%);
       color: white;
       padding: 24px 40px;
       display: flex;
@@ -64,7 +64,7 @@
       display: block;
       padding: 10px 14px;
       text-decoration: none;
-      color: #475569;
+      color: #2A3043;
       font-size: 13px;
       border-radius: 8px;
       transition: all 0.2s;
@@ -72,7 +72,7 @@
     }
     .nav-sidebar a:hover,
     .nav-sidebar a.active {
-      background: #0099CC;
+      background: #135457;
       color: white;
     }
 
@@ -84,7 +84,7 @@
       border-radius: 20px;
       padding: 40px;
       margin-bottom: 32px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 12px rgba(42,48,67,0.08);
       scroll-margin-top: 100px;
       opacity: 0;
       transform: translateY(20px);
@@ -94,14 +94,15 @@
     .section-title {
       font-size: 32px;
       font-weight: 700;
-      color: #0f172a;
+      color: #2A3043;
       margin-bottom: 8px;
-      border-left: 4px solid #0099CC;
+      border-left: 4px solid #135457;
       padding-left: 16px;
     }
     .section-subtitle {
       font-size: 16px;
-      color: #64748b;
+      color: #2A3043;
+      opacity: 0.7;
       margin-bottom: 32px;
       padding-left: 20px;
     }
@@ -114,18 +115,18 @@
       margin-bottom: 24px;
     }
     .kpi-card {
-      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+      background: linear-gradient(135deg, #F3DCE7 0%, #ffffff 100%);
       border-radius: 16px;
       padding: 24px;
       border-left: 5px solid;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(42,48,67,0.06);
       transition: all 0.3s;
     }
-    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
-    .kpi-card.status-ok { border-left-color: #10b981; }
-    .kpi-card.status-warn { border-left-color: #f59e0b; }
-    .kpi-card.status-crit { border-left-color: #ef4444; }
-    .kpi-card.status-info { border-left-color: #0099CC; }
+    .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(42,48,67,0.12); }
+    .kpi-card.status-ok { border-left-color: #038681; }
+    .kpi-card.status-warn { border-left-color: #92DAD9; }
+    .kpi-card.status-crit { border-left-color: #F34C3F; }
+    .kpi-card.status-info { border-left-color: #135457; }
     .kpi-header {
       display: flex;
       justify-content: space-between;
@@ -135,14 +136,15 @@
     .kpi-icon { font-size: 32px; }
     .kpi-label {
       font-size: 14px;
-      color: #64748b;
+      color: #2A3043;
+      opacity: 0.7;
       font-weight: 500;
       margin-bottom: 8px;
     }
     .kpi-value {
       font-size: 42px;
       font-weight: 700;
-      color: #0f172a;
+      color: #2A3043;
       margin: 8px 0;
     }
     .kpi-trend {
@@ -150,7 +152,8 @@
       align-items: center;
       gap: 6px;
       font-size: 13px;
-      color: #64748b;
+      color: #2A3043;
+      opacity: 0.7;
       margin-top: 8px;
     }
     .kpi-sparkline {
@@ -160,10 +163,11 @@
     }
     .kpi-insight {
       font-size: 12px;
-      color: #64748b;
+      color: #2A3043;
+      opacity: 0.7;
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid rgba(42,48,67,0.1);
     }
 
     /* Charts */
@@ -186,8 +190,8 @@
 
     /* Insight boxes */
     .insight-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      border-left: 4px solid #f59e0b;
+      background: linear-gradient(135deg, #92DAD9 0%, rgba(146,218,217,0.5) 100%);
+      border-left: 4px solid #038681;
       padding: 20px;
       border-radius: 12px;
       margin-top: 24px;
@@ -195,12 +199,12 @@
     .insight-box h4 {
       font-size: 16px;
       font-weight: 700;
-      color: #92400e;
+      color: #135457;
       margin-bottom: 12px;
     }
     .insight-box p {
       font-size: 14px;
-      color: #78350f;
+      color: #2A3043;
       line-height: 1.6;
     }
 
@@ -215,18 +219,18 @@
       font-size: 14px;
     }
     th {
-      background: #f1f5f9;
+      background: #92DAD9;
       padding: 12px;
       text-align: left;
       font-weight: 600;
-      color: #0f172a;
-      border-bottom: 2px solid #e2e8f0;
+      color: #2A3043;
+      border-bottom: 2px solid rgba(42,48,67,0.1);
     }
     td {
       padding: 12px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid rgba(42,48,67,0.1);
     }
-    tr:hover { background: #f8fafc; }
+    tr:hover { background: #F3DCE7; }
     .status-badge {
       display: inline-block;
       padding: 4px 10px;
@@ -234,9 +238,9 @@
       font-size: 12px;
       font-weight: 600;
     }
-    .status-badge.delay { background: #fee2e2; color: #991b1b; }
-    .status-badge.test { background: #fef3c7; color: #92400e; }
-    .status-badge.ok { background: #dcfce7; color: #166534; }
+    .status-badge.delay { background: rgba(243,76,63,0.2); color: #F34C3F; }
+    .status-badge.test { background: rgba(146,218,217,0.3); color: #038681; }
+    .status-badge.ok { background: rgba(3,134,129,0.2); color: #038681; }
 
     /* Filters */
     .filters {
@@ -248,18 +252,19 @@
     .filters select,
     .filters input {
       padding: 10px 14px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid rgba(42,48,67,0.2);
       border-radius: 8px;
       font-size: 14px;
       background: white;
-      color: #0f172a;
+      color: #2A3043;
     }
 
     /* Footer */
     .footer {
       text-align: center;
       padding: 32px;
-      color: #64748b;
+      color: #2A3043;
+      opacity: 0.7;
       font-size: 13px;
       margin-top: 48px;
     }
@@ -692,8 +697,8 @@
               type: 'line',
               data: sparkData[key],
               smooth: true,
-              lineStyle: { width: 2, color: '#0099CC' },
-              areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0,153,204,0.3)' }, { offset: 1, color: 'rgba(0,153,204,0)' }] } },
+              lineStyle: { width: 2, color: '#135457' },
+              areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(19,84,87,0.3)' }, { offset: 1, color: 'rgba(19,84,87,0)' }] } },
               symbol: 'none'
             }]
           });
@@ -741,14 +746,14 @@
             name: 'Готовность (%)',
             type: 'bar',
             data: sysData.map(s => s.progress),
-            itemStyle: { color: (params) => params.value >= 90 ? '#10b981' : params.value >= 80 ? '#f59e0b' : '#ef4444' }
+            itemStyle: { color: (params) => params.value >= 90 ? '#038681' : params.value >= 80 ? '#92DAD9' : '#F34C3F' }
           },
           {
             name: 'Отклонение (дни)',
             type: 'line',
             yAxisIndex: 1,
             data: sysData.map(s => s.delay),
-            itemStyle: { color: '#0099CC' },
+            itemStyle: { color: '#135457' },
             lineStyle: { width: 3 }
           }
         ]
@@ -773,7 +778,7 @@
             value: n.cost,
             name: n.name,
             itemStyle: {
-              color: n.progress >= 85 ? '#10b981' : n.progress >= 70 ? '#f59e0b' : '#ef4444'
+              color: n.progress >= 85 ? '#038681' : n.progress >= 70 ? '#92DAD9' : '#F34C3F'
             }
           })),
           label: { show: true, formatter: '{b}\n{c}%' }
@@ -898,7 +903,7 @@
             type: 'bar',
             stack: 'total',
             data: DATA.finance.map(f => (f.plan / 1000000).toFixed(1)),
-            itemStyle: { color: '#94a3b8' }
+            itemStyle: { color: '#92DAD9' }
           },
           {
             name: 'Факт',
@@ -970,7 +975,7 @@
           type: 'piecewise',
           categories: ['Низкий', 'Средний', 'Высокий'],
           dimension: 2,
-          inRange: { color: ['#10b981', '#f59e0b', '#ef4444'] },
+          inRange: { color: ['#038681', '#92DAD9', '#F34C3F'] },
           right: '5%'
         },
         series: [{
@@ -1025,7 +1030,7 @@
           <td>${(f.plan / 1000000).toFixed(1)}</td>
           <td>${(f.fact / 1000000).toFixed(1)}</td>
           <td>${pct}%</td>
-          <td style="color: ${diff > 0 ? '#ef4444' : '#10b981'}">${diff > 0 ? '+' : ''}${(diff / 1000000).toFixed(1)}</td>
+          <td style="color: ${diff > 0 ? '#F34C3F' : '#038681'}">${diff > 0 ? '+' : ''}${(diff / 1000000).toFixed(1)}</td>
         </tr>`;
       }).join('');
     }
@@ -1071,7 +1076,7 @@
             <td>${stageText}</td>
             <td>${c.planDate || '—'}</td>
             <td>${c.factDate || '—'}</td>
-            <td style="color: ${c.deviation > 0 ? '#ef4444' : '#10b981'}">${c.deviation > 0 ? '+' : ''}${c.deviation || 0}</td>
+            <td style="color: ${c.deviation > 0 ? '#F34C3F' : '#038681'}">${c.deviation > 0 ? '+' : ''}${c.deviation || 0}</td>
             <td>${c.audit ? c.audit.toFixed(1) : '—'}</td>
             <td>${c.cost ? (c.cost / 1000).toFixed(0) + ' тыс ₽' : '—'}</td>
           </tr>`;
@@ -1081,7 +1086,7 @@
         console.error('Error rendering components table:', error);
         const tbody = document.getElementById('components-table-body');
         if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Ошибка загрузки данных компонентов</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#F34C3F;">Ошибка загрузки данных компонентов</td></tr>';
         }
       }
     }
