@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ВСМ400 – Дашборд уровня "Супербосс"</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #f5f7fa;
+      color: rgba(0,0,0,0.9);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .header {
+      background: linear-gradient(135deg, #16bcca 0%, #2563eb 100%);
+      color: white;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header h1 { font-size: 24px; font-weight: 700; }
+    .header-meta { display: flex; gap: 20px; font-size: 13px; opacity: 0.95; }
+    .breadcrumb {
+      padding: 12px 32px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .breadcrumb a { color: #2563eb; text-decoration: none; }
+    .breadcrumb span { color: #6b7280; }
+    .container { max-width: 1600px; margin: 0 auto; padding: 24px 32px; }
+    /* Level 1: Master KPI Tiles */
+    .kpi-tiles {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .kpi-tile {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 4px solid;
+    }
+    .kpi-tile:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .kpi-tile.status-ok { border-left-color: #10b981; }
+    .kpi-tile.status-warn { border-left-color: #f59e0b; }
+    .kpi-tile.status-crit { border-left-color: #ef4444; }
+    .kpi-tile.status-info { border-left-color: #2563eb; }
+    .kpi-tile-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; }
+    .kpi-icon { font-size: 28px; }
+    .kpi-value { font-size: 36px; font-weight: 700; color: #0f172a; margin: 8px 0; }
+    .kpi-trend { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #6b7280; }
+    .kpi-label { font-size: 14px; color: #6b7280; font-weight: 500; }
+    /* Level 2: Drill-down view */
+    .level2-view { display: none; background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .level2-view.active { display: block; }
+    .level2-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .level2-title { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .level2-filters { display: flex; gap: 12px; }
+    .level2-filters select { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; }
+    .level2-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+    .level2-charts-full { grid-template-columns: 1fr; }
+    .chart-box { background: #f9fafb; border-radius: 12px; padding: 20px; min-height: 400px; }
+    .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #0f172a; }
+    .insights-panel {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 24px;
+    }
+    .insights-panel h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #92400e; }
+    .insights-panel ul { list-style: none; padding-left: 0; }
+    .insights-panel li { font-size: 13px; color: #78350f; margin: 6px 0; }
+    /* Level 3: Operational details */
+    .level3-view { display: none; background: white; border-radius: 16px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .level3-view.active { display: block; }
+    .level3-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .components-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .component-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 16px;
+      border-left: 3px solid #2563eb;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .component-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .component-card.status-delay { border-left-color: #ef4444; }
+    .component-card.status-ok { border-left-color: #10b981; }
+    .component-card h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .component-meta { font-size: 12px; color: #6b7280; display: flex; justify-content: space-between; margin-top: 8px; }
+    .quality-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .quality-tag.high { background: #dcfce7; color: #166534; }
+    .quality-tag.medium { background: #fef3c7; color: #92400e; }
+    .quality-tag.low { background: #fee2e2; color: #991b1b; }
+    /* Footer */
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .btn-back {
+      background: #f3f4f6;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0f172a;
+    }
+    .btn-back:hover { background: #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>ВСМ400 – Центр мониторинга проекта</h1>
+    <div class="header-meta">
+      <span>Обновлено: <span id="updateTime">31.10.2025 14:30</span></span>
+      <span>|</span>
+      <a href="#" style="color:white;text-decoration:none;">Экспорт PDF</a>
+    </div>
+  </div>
+
+  <div class="breadcrumb" id="breadcrumb">
+    <a href="#" onclick="showLevel1(); return false;">Главная</a>
+  </div>
+
+  <div class="container">
+    <!-- Level 1: Master KPIs -->
+    <div id="level1">
+      <div class="kpi-tiles">
+        <div class="kpi-tile status-info" onclick="drillDown('readiness')">
+          <div class="kpi-tile-header">
+            <div class="kpi-label">Индекс готовности поезда</div>
+            <div class="kpi-trend">↑ 2%</div>
+          </div>
+          <div class="kpi-value" id="kpi-readiness">82%</div>
+          <div style="font-size:12px;color:#6b7280;">Train Readiness Index</div>
+        </div>
+        <div class="kpi-tile status-warn" onclick="drillDown('schedule')">
+          <div class="kpi-tile-header">
+            <div class="kpi-label">Отклонение по срокам</div>
+            <div class="kpi-trend">↗ +12 дн</div>
+          </div>
+          <div class="kpi-value" id="kpi-schedule">+12 дн</div>
+          <div style="font-size:12px;color:#6b7280;">Schedule Deviation</div>
+        </div>
+        <div class="kpi-tile status-ok" onclick="drillDown('budget')">
+          <div class="kpi-tile-header">
+            <div class="kpi-label">Бюджет / Перерасход</div>
+            <div class="kpi-trend">↓ -4%</div>
+          </div>
+          <div class="kpi-value" id="kpi-budget">96%</div>
+          <div style="font-size:12px;color:#6b7280;">Budget Utilization</div>
+        </div>
+        <div class="kpi-tile status-warn" onclick="drillDown('quality')">
+          <div class="kpi-tile-header">
+            <div class="kpi-label">Качество поставщиков</div>
+            <div class="kpi-trend">→ 7.8</div>
+          </div>
+          <div class="kpi-value" id="kpi-quality">7.8 / 10</div>
+          <div style="font-size:12px;color:#6b7280;">Supplier Quality Index</div>
+        </div>
+        <div class="kpi-tile status-crit" onclick="drillDown('risk')">
+          <div class="kpi-tile-header">
+            <div class="kpi-label">Доля ОКР с рисками</div>
+            <div class="kpi-trend">↑ 3%</div>
+          </div>
+          <div class="kpi-value" id="kpi-risk">18%</div>
+          <div style="font-size:12px;color:#6b7280;">R&D Risk Share</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level 2: Drill-down views -->
+    <div id="level2-readiness" class="level2-view">
+      <div class="level2-header">
+        <div class="level2-title">Индекс готовности поезда (Train Readiness Index)</div>
+        <button class="btn-back" onclick="showLevel1()">← Назад</button>
+      </div>
+      <div class="level2-filters">
+        <select id="filter-system-r">
+          <option value="">Все системы</option>
+          <option value="traction">Система тяги</option>
+          <option value="brake">Тормозная система</option>
+          <option value="climate">Микроклимат</option>
+        </select>
+      </div>
+      <div class="level2-charts">
+        <div class="chart-box">
+          <div class="chart-title">Готовность по системам (Gantt-style)</div>
+          <div id="chart-readiness-gantt" style="width:100%;height:380px;"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Распределение по узлам</div>
+          <div id="chart-readiness-nodes" style="width:100%;height:380px;"></div>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <h4>💡 Автоматические инсайты</h4>
+        <ul>
+          <li>Система тяги завершена на 78% (отставание от плана 8 дней)</li>
+          <li>Узел "Редуктор" требует внимания: задержка поставки от ООО "Stauff"</li>
+          <li>Система микроклимата опережает график на 5%</li>
+        </ul>
+      </div>
+      <div style="margin-top:24px;">
+        <button class="btn-back" onclick="showLevel3('readiness')">Показать детали по компонентам →</button>
+      </div>
+    </div>
+
+    <div id="level2-schedule" class="level2-view">
+      <div class="level2-header">
+        <div class="level2-title">Отклонение по срокам (Schedule Deviation)</div>
+        <button class="btn-back" onclick="showLevel1()">← Назад</button>
+      </div>
+      <div class="level2-filters">
+        <select id="filter-stage-s">
+          <option value="">Все этапы</option>
+          <option value="supply">Поставка</option>
+          <option value="rnd">ОКР</option>
+          <option value="test">Испытания</option>
+        </select>
+      </div>
+      <div class="level2-charts level2-charts-full">
+        <div class="chart-box">
+          <div class="chart-title">Timeline: План vs Факт</div>
+          <div id="chart-schedule-timeline" style="width:100%;height:400px;"></div>
+        </div>
+      </div>
+      <div class="chart-box" style="margin-top:24px;">
+        <div class="chart-title">Heatmap отклонений по системам</div>
+        <div id="chart-schedule-heatmap" style="width:100%;height:300px;"></div>
+      </div>
+      <div class="insights-panel">
+        <h4>💡 Автоматические инсайты</h4>
+        <ul>
+          <li>Среднее отклонение: +12 дней</li>
+          <li>3 системы с критическими задержками (>15 дней): Тяга, Тормоз, Пневматика</li>
+          <li>Основная причина: задержка поставок компонентов от поставщиков категории "B"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="level2-budget" class="level2-view">
+      <div class="level2-header">
+        <div class="level2-title">Бюджет / Перерасход (Budget Utilization)</div>
+        <button class="btn-back" onclick="showLevel1()">← Назад</button>
+      </div>
+      <div class="level2-charts">
+        <div class="chart-box">
+          <div class="chart-title">Распределение бюджета по системам</div>
+          <div id="chart-budget-treemap" style="width:100%;height:380px;"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">План vs Факт по узлам</div>
+          <div id="chart-budget-bars" style="width:100%;height:380px;"></div>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <h4>💡 Автоматические инсайты</h4>
+        <ul>
+          <li>Освоено 96% бюджета, перерасход на 4%</li>
+          <li>Система тяги превысила план на 12% (основной вкладчик: редуктор)</li>
+          <li>Система микроклимата в пределах бюджета</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="level2-quality" class="level2-view">
+      <div class="level2-header">
+        <div class="level2-title">Качество поставщиков (Supplier Quality Index)</div>
+        <button class="btn-back" onclick="showLevel1()">← Назад</button>
+      </div>
+      <div class="level2-filters">
+        <select id="filter-category-q">
+          <option value="">Все категории</option>
+          <option value="critical">Критические</option>
+          <option value="stable">Стабильные</option>
+          <option value="new">Новые</option>
+        </select>
+      </div>
+      <div class="level2-charts">
+        <div class="chart-box">
+          <div class="chart-title">Bubble Chart: Оценка аудита vs Доля поставок</div>
+          <div id="chart-quality-bubble" style="width:100%;height:380px;"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Рейтинг поставщиков</div>
+          <div id="chart-quality-ranking" style="width:100%;height:380px;"></div>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <h4>💡 Автоматические инсайты</h4>
+        <ul>
+          <li>Средний рейтинг качества: 7.8/10</li>
+          <li>3 поставщика с критическими инцидентами: требуют аудита</li>
+          <li>ООО "КСК" — стабильный поставщик с рейтингом 9.2/10</li>
+        </ul>
+      </div>
+      <div style="margin-top:24px;">
+        <button class="btn-back" onclick="showLevel3('quality')">Показать детали по поставщикам →</button>
+      </div>
+    </div>
+
+    <div id="level2-risk" class="level2-view">
+      <div class="level2-header">
+        <div class="level2-title">Доля ОКР с рисками (R&D Risk Share)</div>
+        <button class="btn-back" onclick="showLevel1()">← Назад</button>
+      </div>
+      <div class="level2-charts">
+        <div class="chart-box">
+          <div class="chart-title">Matrix: Система × Стадия разработки</div>
+          <div id="chart-risk-matrix" style="width:100%;height:380px;"></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Распределение рисков по типам</div>
+          <div id="chart-risk-types" style="width:100%;height:380px;"></div>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <h4>💡 Автоматические инсайты</h4>
+        <ul>
+          <li>18% ОКР имеют зафиксированные несоответствия или сдвиги</li>
+          <li>Высокие риски в стадии "Испытания" системы тяги: 3 несоответствия ТЗ</li>
+          <li>Рекомендация: провести дополнительный аудит узла "Трансформатор"</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Level 3: Operational details -->
+    <div id="level3-readiness" class="level3-view">
+      <div class="level3-header">
+        <div class="level2-title">Детали компонентов: Индекс готовности</div>
+        <button class="btn-back" onclick="showLevel2('readiness')">← Назад</button>
+      </div>
+      <div class="components-grid" id="components-readiness"></div>
+    </div>
+
+    <div id="level3-quality" class="level3-view">
+      <div class="level3-header">
+        <div class="level2-title">Детали поставщиков: Качество</div>
+        <button class="btn-back" onclick="showLevel2('quality')">← Назад</button>
+      </div>
+      <div class="components-grid" id="components-quality"></div>
+    </div>
+
+    <div class="footer">
+      <div>Статус обновления данных: онлайн • Источник: БД ВСМ400 • Контакт аналитика: analytics@vsm400.live</div>
+    </div>
+  </div>
+
+  <script>
+    // Псевдоданные
+    const MOCK_DATA = {
+      readiness: {
+        systems: [
+          { name: 'Система тяги', progress: 78, delay: 8, plan: 86 },
+          { name: 'Тормозная система', progress: 85, delay: 3, plan: 88 },
+          { name: 'Микроклимат', progress: 92, delay: -5, plan: 87 },
+          { name: 'Пневматика', progress: 71, delay: 12, plan: 83 },
+          { name: 'Электрооборудование', progress: 88, delay: 2, plan: 86 },
+          { name: 'Безопасность', progress: 95, delay: -2, plan: 93 },
+          { name: 'Кузов', progress: 82, delay: 5, plan: 87 },
+          { name: 'Подвеска', progress: 79, delay: 7, plan: 86 }
+        ],
+        nodes: [
+          { name: 'Редуктор', progress: 65, status: 'delay' },
+          { name: 'Трансформатор', progress: 88, status: 'ok' },
+          { name: 'Компрессор', progress: 72, status: 'warn' },
+          { name: 'Кондиционер', progress: 91, status: 'ok' },
+          { name: 'Тормозные диски', progress: 89, status: 'ok' }
+        ]
+      },
+      schedule: {
+        milestones: [
+          { date: '2025-01', plan: 10, fact: 12 },
+          { date: '2025-03', plan: 25, fact: 28 },
+          { date: '2025-06', plan: 45, fact: 49 },
+          { date: '2025-09', plan: 70, fact: 74 },
+          { date: '2025-12', plan: 90, fact: 94 },
+          { date: '2026-03', plan: 100, fact: null }
+        ],
+        heatmap: [
+          { system: 'Тяга', stage: 'Поставка', delay: 8 },
+          { system: 'Тяга', stage: 'ОКР', delay: 5 },
+          { system: 'Тяга', stage: 'Испытания', delay: 12 },
+          { system: 'Тормоз', stage: 'Поставка', delay: 3 },
+          { system: 'Тормоз', stage: 'ОКР', delay: 2 },
+          { system: 'Микроклимат', stage: 'Поставка', delay: -2 },
+          { system: 'Пневматика', stage: 'Поставка', delay: 15 },
+          { system: 'Электро', stage: 'Поставка', delay: 2 }
+        ]
+      },
+      budget: {
+        systems: [
+          { name: 'Система тяги', plan: 450000000, fact: 504000000 },
+          { name: 'Тормозная система', plan: 180000000, fact: 176400000 },
+          { name: 'Микроклимат', plan: 120000000, fact: 118800000 },
+          { name: 'Пневматика', plan: 95000000, fact: 102600000 },
+          { name: 'Электрооборудование', plan: 280000000, fact: 274400000 }
+        ]
+      },
+      quality: {
+        suppliers: [
+          { name: 'Stauff', audit: 9.2, share: 28, cost: 450000000, category: 'stable', incidents: 0 },
+          { name: 'ООО "КСК"', audit: 8.8, share: 15, cost: 220000000, category: 'stable', incidents: 1 },
+          { name: 'ООО "ТРАНСКОН"', audit: 7.5, share: 12, cost: 180000000, category: 'critical', incidents: 3 },
+          { name: 'Bossard', audit: 8.5, share: 10, cost: 150000000, category: 'stable', incidents: 0 },
+          { name: 'ООО "КОНТИНЕНТ"', audit: 6.8, share: 8, cost: 120000000, category: 'new', incidents: 2 }
+        ]
+      },
+      risk: {
+        matrix: [
+          { system: 'Тяга', stage: 'Разработка', level: 'medium' },
+          { system: 'Тяга', stage: 'Испытания', level: 'high' },
+          { system: 'Тормоз', stage: 'Разработка', level: 'low' },
+          { system: 'Тормоз', stage: 'Внедрение', level: 'medium' },
+          { system: 'Микроклимат', stage: 'Испытания', level: 'low' },
+          { system: 'Пневматика', stage: 'Разработка', level: 'high' }
+        ],
+        types: [
+          { type: 'Несоответствие ТЗ', count: 8 },
+          { type: 'Сдвиг сроков', count: 12 },
+          { type: 'Технические проблемы', count: 5 },
+          { type: 'Качество поставок', count: 3 }
+        ]
+      },
+      components: {
+        readiness: [
+          { name: 'Редуктор тяговый', supplier: 'ООО "Stauff"', cost: '45.2 млн', status: 'delay', progress: 65, quality: 'medium' },
+          { name: 'Трансформатор главный', supplier: 'ООО "КСК"', cost: '38.5 млн', status: 'ok', progress: 88, quality: 'high' },
+          { name: 'Компрессорный агрегат', supplier: 'ООО "ТРАНСКОН"', cost: '22.1 млн', status: 'warn', progress: 72, quality: 'medium' },
+          { name: 'Кондиционер салона', supplier: 'Bossard', cost: '18.9 млн', status: 'ok', progress: 91, quality: 'high' },
+          { name: 'Тормозные диски', supplier: 'ООО "КОНТИНЕНТ"', cost: '12.4 млн', status: 'ok', progress: 89, quality: 'high' },
+          { name: 'Редуктор вспомогательный', supplier: 'ООО "Stauff"', cost: '8.7 млн', status: 'delay', progress: 58, quality: 'medium' }
+        ]
+      }
+    };
+
+    let currentLevel = 1;
+    let currentKPI = null;
+
+    function showLevel1() {
+      currentLevel = 1;
+      document.querySelectorAll('.level2-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.level3-view').forEach(el => el.classList.remove('active'));
+      document.getElementById('level1').style.display = 'block';
+      document.getElementById('breadcrumb').innerHTML = '<a href="#" onclick="showLevel1(); return false;">Главная</a>';
+    }
+
+    function drillDown(kpi) {
+      currentLevel = 2;
+      currentKPI = kpi;
+      document.getElementById('level1').style.display = 'none';
+      document.querySelectorAll('.level2-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.level3-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(`level2-${kpi}`).classList.add('active');
+      updateBreadcrumb(kpi);
+      renderLevel2(kpi);
+    }
+
+    function showLevel2(kpi) {
+      currentLevel = 2;
+      currentKPI = kpi;
+      document.querySelectorAll('.level3-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(`level2-${kpi}`).classList.add('active');
+      updateBreadcrumb(kpi);
+    }
+
+    function showLevel3(kpi) {
+      currentLevel = 3;
+      document.querySelectorAll('.level2-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(`level3-${kpi}`).classList.add('active');
+      updateBreadcrumb(kpi, true);
+      renderLevel3(kpi);
+    }
+
+    function updateBreadcrumb(kpi, isLevel3 = false) {
+      const names = {
+        readiness: 'Индекс готовности',
+        schedule: 'Отклонение по срокам',
+        budget: 'Бюджет',
+        quality: 'Качество поставщиков',
+        risk: 'Риски ОКР'
+      };
+      let html = '<a href="#" onclick="showLevel1(); return false;">Главная</a>';
+      html += ` <span>/</span> <span>${names[kpi]}</span>`;
+      if (isLevel3) html += ' <span>/</span> <span>Детали</span>';
+      document.getElementById('breadcrumb').innerHTML = html;
+    }
+
+    function renderLevel2(kpi) {
+      if (kpi === 'readiness') {
+        renderReadinessCharts();
+      } else if (kpi === 'schedule') {
+        renderScheduleCharts();
+      } else if (kpi === 'budget') {
+        renderBudgetCharts();
+      } else if (kpi === 'quality') {
+        renderQualityCharts();
+      } else if (kpi === 'risk') {
+        renderRiskCharts();
+      }
+    }
+
+    function renderLevel3(kpi) {
+      if (kpi === 'readiness') {
+        const grid = document.getElementById('components-readiness');
+        grid.innerHTML = MOCK_DATA.components.readiness.map(c => `
+          <div class="component-card status-${c.status}" onclick="alert('Детали: ${c.name}')">
+            <h4>${c.name}</h4>
+            <div>Поставщик: ${c.supplier}</div>
+            <div>Стоимость: ${c.cost} ₽</div>
+            <div class="component-meta">
+              <span>Готовность: ${c.progress}%</span>
+              <span class="quality-tag ${c.quality}">${c.quality === 'high' ? 'Высокое' : c.quality === 'medium' ? 'Среднее' : 'Низкое'}</span>
+            </div>
+          </div>
+        `).join('');
+      } else if (kpi === 'quality') {
+        const grid = document.getElementById('components-quality');
+        grid.innerHTML = MOCK_DATA.quality.suppliers.map(s => `
+          <div class="component-card" onclick="alert('Детали поставщика: ${s.name}')">
+            <h4>${s.name}</h4>
+            <div>Рейтинг аудита: ${s.audit}/10</div>
+            <div>Доля поставок: ${s.share}%</div>
+            <div>Стоимость контракта: ${(s.cost / 1000000).toFixed(1)} млн ₽</div>
+            <div class="component-meta">
+              <span>Категория: ${s.category === 'stable' ? 'Стабильный' : s.category === 'critical' ? 'Критический' : 'Новый'}</span>
+              <span>Инциденты: ${s.incidents}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderReadinessCharts() {
+      const ganttEl = document.getElementById('chart-readiness-gantt');
+      if (ganttEl) {
+        const chart = echarts.init(ganttEl);
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          grid: { left: '15%', right: '10%', top: '10%', bottom: '10%' },
+          xAxis: { type: 'value', name: 'Готовность (%)', max: 100 },
+          yAxis: { type: 'category', data: MOCK_DATA.readiness.systems.map(s => s.name), axisLabel: { interval: 0, rotate: 0 } },
+          series: [{
+            type: 'bar',
+            data: MOCK_DATA.readiness.systems.map(s => s.progress),
+            itemStyle: { color: (params) => params.value < 80 ? '#ef4444' : params.value < 90 ? '#f59e0b' : '#10b981' },
+            label: { show: true, position: 'right', formatter: '{c}%' }
+          }]
+        });
+      }
+      const nodesEl = document.getElementById('chart-readiness-nodes');
+      if (nodesEl) {
+        const chart = echarts.init(nodesEl);
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            data: MOCK_DATA.readiness.nodes.map(n => ({
+              value: n.progress,
+              name: n.name,
+              itemStyle: { color: n.status === 'delay' ? '#ef4444' : n.status === 'warn' ? '#f59e0b' : '#10b981' }
+            })),
+            label: { show: true, formatter: '{b}: {c}%' }
+          }]
+        });
+      }
+    }
+
+    function renderScheduleCharts() {
+      const timelineEl = document.getElementById('chart-schedule-timeline');
+      if (timelineEl) {
+        const chart = echarts.init(timelineEl);
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['План', 'Факт'] },
+          xAxis: { type: 'category', data: MOCK_DATA.schedule.milestones.map(m => m.date) },
+          yAxis: { type: 'value', name: 'Готовность (%)', max: 100 },
+          series: [
+            { name: 'План', type: 'line', data: MOCK_DATA.schedule.milestones.map(m => m.plan), itemStyle: { color: '#2563eb' } },
+            { name: 'Факт', type: 'line', data: MOCK_DATA.schedule.milestones.map(m => m.fact), itemStyle: { color: '#ef4444' } }
+          ]
+        });
+      }
+      const heatmapEl = document.getElementById('chart-schedule-heatmap');
+      if (heatmapEl) {
+        const chart = echarts.init(heatmapEl);
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          grid: { left: '20%', top: '10%' },
+          xAxis: { type: 'category', data: ['Поставка', 'ОКР', 'Испытания', 'Внедрение'] },
+          yAxis: { type: 'category', data: [...new Set(MOCK_DATA.schedule.heatmap.map(h => h.system))] },
+          visualMap: {
+            min: -5, max: 15,
+            calculable: true,
+            orient: 'horizontal',
+            left: 'center',
+            bottom: '10%',
+            inRange: { color: ['#10b981', '#f59e0b', '#ef4444'] }
+          },
+          series: [{
+            type: 'heatmap',
+            data: MOCK_DATA.schedule.heatmap.map(h => [['Поставка', 'ОКР', 'Испытания', 'Внедрение'].indexOf(h.stage), [...new Set(MOCK_DATA.schedule.heatmap.map(x => x.system))].indexOf(h.system), h.delay]),
+            label: { show: true, formatter: '{c}' }
+          }]
+        });
+      }
+    }
+
+    function renderBudgetCharts() {
+      const treemapEl = document.getElementById('chart-budget-treemap');
+      if (treemapEl) {
+        const chart = echarts.init(treemapEl);
+        chart.setOption({
+          tooltip: { formatter: (info) => `${info.name}: ${(info.value / 1000000).toFixed(1)} млн ₽` },
+          series: [{
+            type: 'treemap',
+            roam: false,
+            data: MOCK_DATA.budget.systems.map(s => ({
+              value: s.plan,
+              name: s.name,
+              itemStyle: { color: s.fact > s.plan ? '#fee2e2' : '#dcfce7' }
+            }))
+          }]
+        });
+      }
+      const barsEl = document.getElementById('chart-budget-bars');
+      if (barsEl) {
+        const chart = echarts.init(barsEl);
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['План', 'Факт'] },
+          xAxis: { type: 'category', data: MOCK_DATA.budget.systems.map(s => s.name), axisLabel: { interval: 0, rotate: 30 } },
+          yAxis: { type: 'value', name: '₽ млн' },
+          series: [
+            { name: 'План', type: 'bar', data: MOCK_DATA.budget.systems.map(s => (s.plan / 1000000).toFixed(1)) },
+            { name: 'Факт', type: 'bar', data: MOCK_DATA.budget.systems.map(s => (s.fact / 1000000).toFixed(1)) }
+          ]
+        });
+      }
+    }
+
+    function renderQualityCharts() {
+      const bubbleEl = document.getElementById('chart-quality-bubble');
+      if (bubbleEl) {
+        const chart = echarts.init(bubbleEl);
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          xAxis: { type: 'value', name: 'Оценка аудита', min: 5, max: 10 },
+          yAxis: { type: 'value', name: 'Доля поставок (%)' },
+          series: [{
+            type: 'scatter',
+            symbolSize: (data) => Math.sqrt(data[2]) * 8,
+            data: MOCK_DATA.quality.suppliers.map(s => [s.audit, s.share, s.cost / 1000000]),
+            label: { show: true, formatter: (params) => MOCK_DATA.quality.suppliers[params.dataIndex].name }
+          }]
+        });
+      }
+      const rankingEl = document.getElementById('chart-quality-ranking');
+      if (rankingEl) {
+        const chart = echarts.init(rankingEl);
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          grid: { left: '20%', top: '10%' },
+          xAxis: { type: 'value', name: 'Рейтинг', max: 10 },
+          yAxis: { type: 'category', data: MOCK_DATA.quality.suppliers.map(s => s.name), axisLabel: { interval: 0 } },
+          series: [{
+            type: 'bar',
+            data: MOCK_DATA.quality.suppliers.map(s => s.audit),
+            itemStyle: { color: (params) => params.value >= 9 ? '#10b981' : params.value >= 7.5 ? '#f59e0b' : '#ef4444' },
+            label: { show: true, position: 'right', formatter: '{c}/10' }
+          }]
+        });
+      }
+    }
+
+    function renderRiskCharts() {
+      const matrixEl = document.getElementById('chart-risk-matrix');
+      if (matrixEl) {
+        const chart = echarts.init(matrixEl);
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          grid: { left: '15%', top: '10%' },
+          xAxis: { type: 'category', data: ['Разработка', 'Испытания', 'Внедрение'] },
+          yAxis: { type: 'category', data: [...new Set(MOCK_DATA.risk.matrix.map(r => r.system))] },
+          visualMap: {
+            type: 'piecewise',
+            categories: ['low', 'medium', 'high'],
+            dimension: 2,
+            inRange: { color: ['#10b981', '#f59e0b', '#ef4444'] },
+            right: '5%'
+          },
+          series: [{
+            type: 'scatter',
+            data: MOCK_DATA.risk.matrix.map(r => [
+              ['Разработка', 'Испытания', 'Внедрение'].indexOf(r.stage),
+              [...new Set(MOCK_DATA.risk.matrix.map(x => x.system))].indexOf(r.system),
+              r.level === 'low' ? 0 : r.level === 'medium' ? 1 : 2
+            ]),
+            symbolSize: 40
+          }]
+        });
+      }
+      const typesEl = document.getElementById('chart-risk-types');
+      if (typesEl) {
+        const chart = echarts.init(typesEl);
+        chart.setOption({
+          tooltip: { trigger: 'item' },
+          series: [{
+            type: 'pie',
+            radius: '70%',
+            data: MOCK_DATA.risk.types.map(t => ({ value: t.count, name: t.type })),
+            label: { show: true, formatter: '{b}: {c}' }
+          }]
+        });
+      }
+    }
+
+    // Инициализация
+    window.addEventListener('load', () => {
+      document.getElementById('updateTime').textContent = new Date().toLocaleString('ru-RU');
+    });
+  </script>
+</body>
+</html>
+
