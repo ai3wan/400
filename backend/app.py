@@ -855,6 +855,38 @@ async def okr_summary_by_phase() -> Dict[str, Any]:
         return {"items": [], "error": str(e)}
 
 
+@app.get("/api/okr/funnel")
+async def okr_funnel() -> Dict[str, Any]:
+    """
+    Фанел из представления okr_summary, группировка по current_phase и current_progress.
+    Порядок слоёв сверху вниз: ТЗ -> ОО -> ПИ; внутри фазы прогресс по возрастанию.
+    Возвращает items: [{phase, progress, count}] уже в нужном порядке.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT current_phase AS phase, COALESCE(current_progress, 0) AS progress, COUNT(*) AS count
+            FROM okr_summary
+            GROUP BY current_phase, COALESCE(current_progress, 0)
+            ORDER BY 
+              CASE current_phase
+                WHEN 'ТЗ' THEN 1
+                WHEN 'ОО' THEN 2
+                WHEN 'ПИ' THEN 3
+                ELSE 99
+              END,
+              COALESCE(current_progress, 0) ASC
+            """
+        )
+        rows = cursor.fetchall()
+        cursor.close(); conn.close()
+        return {"items": rows, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+    except Exception as e:
+        return {"items": [], "error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
