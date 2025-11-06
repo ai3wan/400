@@ -155,20 +155,22 @@ async function okrFunnelChart(){
   const payload = res.ok ? await res.json() : { items: [] };
   const rows = payload.items || [];
   const full={"ТЗ":"Техническое задание","ОО":"Опытный образец","ПИ":"Приемочные испытания"};
+  const phaseColor={"ТЗ":"#2563EB","ОО":"#16BDCA","ПИ":"#10b981"};
   const data = rows.map(r=>({
     name: `${r.phase || '—'} — ${Number(r.progress||0)}%`,
     value: r.count || 0,
     rawPhase: r.phase || '—',
     progress: Number(r.progress||0),
-    fullPhase: full[r.phase||''] || (r.phase||'—')
+    fullPhase: full[r.phase||''] || (r.phase||'—'),
+    itemStyle: { color: phaseColor[r.phase||''] || '#6b7280' }
   }));
   el.setOption({
-    tooltip:{ trigger:'item', formatter:(p)=>`${p.data.fullPhase}: ${p.data.progress}% — ${p.data.value}` },
+    tooltip:{ trigger:'item', formatter:(p)=>`${p.data.fullPhase} [${p.data.progress}%] - ${p.data.value}` },
     series:[{
       type:'funnel',
       sort:'none', // сохраняем порядок, как пришёл (ТЗ→ОО→ПИ и прогресс по возрастанию)
       gap:4,
-      label:{ show:true, formatter:'{b}' },
+      label:{ show:true, formatter:(p)=>`${p.data.rawPhase} [${p.data.progress}%] - ${p.data.value}` },
       itemStyle:{ borderRadius:6 },
       data
     }]
