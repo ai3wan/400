@@ -819,6 +819,34 @@ async def okr_operational_summary() -> Dict[str, Any]:
         }
 
 
+@app.get("/api/okr/summary-by-phase")
+async def okr_summary_by_phase() -> Dict[str, Any]:
+    """
+    Агрегация из представления okr_summary: количество текущих ОКР по фазам
+    (ТЗ, ОО, ПИ). Ожидается, что в представлении есть поле work_phase с этими
+    значениями. Возвращает массив [{phase, count}].
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT current_phase AS phase, COUNT(*) AS count
+            FROM okr_summary
+            GROUP BY current_phase
+            """
+        )
+        rows = cursor.fetchall()
+        cursor.close(); conn.close()
+
+        # Упорядочим по привычному порядку фаз
+        order = {"ТЗ": 1, "ОО": 2, "ПИ": 3}
+        rows_sorted = sorted(rows, key=lambda r: order.get((r.get("phase") or ""), 99))
+        return {"items": rows_sorted, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+    except Exception as e:
+        return {"items": [], "error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
