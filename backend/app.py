@@ -905,27 +905,46 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
     """
     Детали ОКР по выбранной фазе. Возвращает:
     system_name, supplier_name, end_plan_date, current_progress (progress_percentage).
-    Сортировка по system_name (алфавит).
+    Если phase='Выполнено', фильтрует ПИ с progress=100.
+    Иначе фильтрует по фазе с progress<100.
+    Сортировка: end_plan_date ASC, progress ASC, system_name ASC.
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT 
-                so.name AS system_name,
-                COALESCE(c.short_name, '—') AS supplier_name,
-                os.end_plan_date,
-                COALESCE(os.progress_percentage, 0) AS current_progress
-            FROM okr_status os
-            JOIN system_okr so ON so.id = os.system_id
-            LEFT JOIN company c ON c.id = os.supplier_id
-            JOIN work_phases wp ON wp.id = os.work_phase_id
-            WHERE wp.name = %s AND COALESCE(os.progress_percentage, 0) < 100
-            ORDER BY os.end_plan_date ASC NULLS LAST, COALESCE(os.progress_percentage, 0) ASC, so.name ASC
-            """,
-            (phase,)
-        )
+        if phase == "Выполнено":
+            cursor.execute(
+                """
+                SELECT 
+                    so.name AS system_name,
+                    COALESCE(c.short_name, '—') AS supplier_name,
+                    os.end_plan_date,
+                    COALESCE(os.progress_percentage, 0) AS current_progress
+                FROM okr_status os
+                JOIN system_okr so ON so.id = os.system_id
+                LEFT JOIN company c ON c.id = os.supplier_id
+                JOIN work_phases wp ON wp.id = os.work_phase_id
+                WHERE wp.name = 'ПИ' AND COALESCE(os.progress_percentage, 0) = 100
+                ORDER BY os.end_plan_date ASC NULLS LAST, COALESCE(os.progress_percentage, 0) ASC, so.name ASC
+                """
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT 
+                    so.name AS system_name,
+                    COALESCE(c.short_name, '—') AS supplier_name,
+                    os.end_plan_date,
+                    COALESCE(os.progress_percentage, 0) AS current_progress
+                FROM okr_status os
+                JOIN system_okr so ON so.id = os.system_id
+                LEFT JOIN company c ON c.id = os.supplier_id
+                JOIN work_phases wp ON wp.id = os.work_phase_id
+                WHERE wp.name = %s AND COALESCE(os.progress_percentage, 0) < 100
+                ORDER BY os.end_plan_date ASC NULLS LAST, COALESCE(os.progress_percentage, 0) ASC, so.name ASC
+                """,
+                (phase,)
+            )
         rows = cursor.fetchall()
         cursor.close(); conn.close()
         return {"items": rows, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), "phase": phase}}
