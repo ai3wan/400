@@ -738,11 +738,19 @@ async def okr_operational_summary() -> Dict[str, Any]:
         """, (st_in_progress,))
         avg_progress = float((cursor.fetchone() or {}).get("avg_progress", 0.0) or 0.0)
 
+        # KPI: полностью выполнено ОКР — количество строк во вью okr_ready
+        try:
+            cursor.execute("SELECT COUNT(*) AS cnt FROM okr_ready")
+            total_ready = int((cursor.fetchone() or {}).get("cnt", 0))
+        except Exception:
+            total_ready = 0
+
         kpi = {
             "total_in_work": total_in_work,
             "total_done": total_done,
             "overdue_now": overdue_now,
             "avg_progress_in_work": round(avg_progress, 2),
+            "total_ready": total_ready,
         }
 
         # Воронка по фазам: общее количество задач на каждую фазу

@@ -75,6 +75,10 @@
         <div class="kpi-label">Всего выполнено</div>
       </div>
       <div class="card kpi-card">
+        <div class="kpi-value" id="okr-kpi-ready">0</div>
+        <div class="kpi-label">Полностью выполнено ОКР</div>
+      </div>
+      <div class="card kpi-card">
         <div class="kpi-value" id="okr-kpi-overdue">0</div>
         <div class="kpi-label">С нарушением срока (горящие)</div>
       </div>
@@ -143,7 +147,7 @@ function initAuth(){
 
 let OKR={};
 async function loadData(){const res=await fetch('/api/okr/operational-summary');if(!res.ok)throw new Error('HTTP '+res.status);OKR=await res.json();}
-function setKPI(){const k=OKR.kpi||{};document.getElementById('okr-kpi-inwork').innerText=(k.total_in_work||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-done').innerText=(k.total_done||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-overdue').innerText=(k.overdue_now||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-avg').innerText=((k.avg_progress_in_work||0).toFixed(0))+'%';}
+function setKPI(){const k=OKR.kpi||{};document.getElementById('okr-kpi-inwork').innerText=(k.total_in_work||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-done').innerText=(k.total_done||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-ready').innerText=(k.total_ready||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-overdue').innerText=(k.overdue_now||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-avg').innerText=((k.avg_progress_in_work||0).toFixed(0))+'%';}
 function okrFunnelChart(){const el=echarts.init(document.getElementById('okrFunnel'));const data=(OKR.funnel_by_phase||[]).map(x=>({name:x.phase||'—',value:x.count||0}));el.setOption({tooltip:{trigger:'item',formatter:'{b}: {c}'},series:[{type:'funnel',sort:'descending',gap:4,label:{show:true,formatter:'{b}: {c}'},itemStyle:{borderRadius:6},data}]});window.addEventListener('resize',()=>el.resize());}
 function okrStackedChart(){const el=echarts.init(document.getElementById('okrStacked'));const map=OKR.stacked_by_phase_status||{};const phases=Object.keys(map);const statuses=['Не начато','В работе','Выполнено'];const series=statuses.map(st=>({name:st,type:'bar',stack:'total',data:phases.map(p=>(map[p]&&map[p][st])?map[p][st]:0)}));el.setOption({tooltip:{trigger:'axis'},legend:{data:statuses},xAxis:{type:'category',data:phases},yAxis:{type:'value'},series});window.addEventListener('resize',()=>el.resize());}
 async function okrPhasePieChart(){
