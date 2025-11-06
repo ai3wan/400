@@ -121,7 +121,7 @@
 
     <div class="card" style="margin-top:20px;">
       <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span>🚨 Риски просрочки</span>
+        <span id="okrRiskTitle">🚨 Риски просрочки - [0] элемента</span>
         <button id="okrRiskToggle" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text);">Развернуть</button>
       </div>
       <div style="overflow:auto;">
@@ -242,6 +242,8 @@ async function loadRiskSoon(){
     const res=await fetch('/api/okr/risk-soon');
     const payload = res.ok ? await res.json() : {items:[]};
     const rows = payload.items || [];
+    const title=document.getElementById('okrRiskTitle');
+    if(title){ title.textContent = `🚨 Риски просрочки - [${rows.length}] элемента`; }
     const body=document.getElementById('okrRiskSoonBody');
     const toShow = RISK_EXPANDED ? rows : rows.slice(0,5);
     const html = toShow.map(r=>{
