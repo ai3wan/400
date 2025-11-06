@@ -152,7 +152,6 @@
       </div>
       <div class="card">
         <div class="chart-title">Риски просрочки: по месяцам</div>
-        <div id="okrRiskMonthStats" style="display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 4px 0;"></div>
         <div id="okrRiskMonthPie" class="chart-container"></div>
       </div>
     </div>
@@ -417,17 +416,6 @@ function okrRiskMonthPieChart(){
 
     const hasData = monthData.length > 0;
 
-    // render separate stats chips: bold count above month
-    const statsEl = document.getElementById('okrRiskMonthStats');
-    if(statsEl){
-      statsEl.innerHTML = monthData.map(m => `
-        <div style="min-width:88px;padding:8px 10px;border:1px solid rgba(0,0,0,.08);border-radius:10px;background:var(--c-card);text-align:center;">
-          <div style="font:700 18px 'Moscow Sans',sans-serif;">${m.value}</div>
-          <div style="font:400 12px 'Moscow Sans',sans-serif;opacity:.8;">${m.name}</div>
-        </div>
-      `).join('');
-    }
-
     el.setOption({
       tooltip:{
         trigger:'item',
@@ -443,6 +431,21 @@ function okrRiskMonthPieChart(){
         type:'pie',
         radius:['40%','70%'],
         itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},
+        label: {
+          show: true,
+          formatter: (params) => {
+            return `{bold|${params.value}}\n${params.name}`;
+          },
+          fontSize: 12,
+          fontFamily: 'Moscow Sans, sans-serif',
+          rich: {
+            bold: {
+              fontSize: 18,
+              fontWeight: 'bold',
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          }
+        },
         data: monthData.map(m=>({ name: m.name, value: m.value }))
       }]
     }, true);
