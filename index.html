@@ -101,7 +101,7 @@
 
     <div id="okrPhaseDetails" class="card" style="margin-top:20px;display:none;">
       <div class="chart-title" id="okrPhaseDetailsTitle" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span>Детали по фазе</span>
+        <span id="okrPhaseDetailsPhase">Детали по фазе</span>
         <button id="okrPhaseDetailsClose" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text);">Закрыть</button>
       </div>
       <div style="overflow:auto;">
@@ -221,9 +221,9 @@ async function loadPhaseDetails(phase, fullPhaseName){
     const payload=res.ok ? await res.json() : {items:[]};
     const rows=payload.items||[];
     const body=document.getElementById('okrPhaseDetailsBody');
-    const titleEl=document.getElementById('okrPhaseDetailsTitle');
+    const titleSpan=document.getElementById('okrPhaseDetailsPhase');
     const detailsEl=document.getElementById('okrPhaseDetails');
-    titleEl.innerText=`Детали по фазе: ${fullPhaseName}`;
+    if(titleSpan){ titleSpan.innerText=`Детали по фазе: ${fullPhaseName}`; }
     const html=rows.map(r=>{
       const dt=(r.end_plan_date||'').slice(0,10)||'—';
       const progress=Number(r.current_progress||0);
