@@ -890,8 +890,8 @@ async def okr_funnel() -> Dict[str, Any]:
 @app.get("/api/okr/details-by-phase")
 async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
     """
-    Детали ОКР по выбранной фазе из okr_summary.
-    Возвращает: system_name, supplier_name, end_plan_date, current_progress.
+    Детали ОКР по выбранной фазе. Возвращает:
+    system_name, supplier_name, end_plan_date, current_progress (progress_percentage).
     Сортировка по system_name (алфавит).
     """
     try:
@@ -900,13 +900,16 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
         cursor.execute(
             """
             SELECT 
-                system_name,
-                supplier_name,
-                end_plan_date,
-                COALESCE(current_progress, 0) AS current_progress
-            FROM okr_summary
-            WHERE current_phase = %s
-            ORDER BY system_name ASC
+                so.name AS system_name,
+                COALESCE(c.short_name, '—') AS supplier_name,
+                os.end_plan_date,
+                COALESCE(os.progress_percentage, 0) AS current_progress
+            FROM okr_status os
+            JOIN system_okr so ON so.id = os.system_id
+            LEFT JOIN company c ON c.id = os.supplier_id
+            JOIN work_phases wp ON wp.id = os.work_phase_id
+            WHERE wp.name = %s
+            ORDER BY so.name ASC
             """,
             (phase,)
         )
