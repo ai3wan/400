@@ -952,6 +952,41 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
         return {"items": [], "error": str(e)}
 
 
+@app.get("/api/okr/risk-soon")
+async def okr_risk_soon() -> Dict[str, Any]:
+    """
+    Риски просрочки: выбираем элементы, у которых плановая дата окончания
+    в пределах текущего месяца или следующего месяца.
+    Возвращает system_name, supplier_name, phase (wp.name), end_plan_date, current_progress.
+    Сортировка: end_plan_date ASC, progress ASC.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT 
+                so.name AS system_name,
+                COALESCE(c.short_name, '—') AS supplier_name,
+                wp.name AS phase,
+                os.end_plan_date,
+                COALESCE(os.progress_percentage, 0) AS current_progress
+            FROM okr_status os
+            JOIN system_okr so ON so.id = os.system_id
+            LEFT JOIN company c ON c.id = os.supplier_id
+            JOIN work_phases wp ON wp.id = os.work_phase_id
+            WHERE os.end_plan_date IS NOT NULL
+              AND date_trunc('month', os.end_plan_date) <= date_trunc('month', (CURRENT_DATE + INTERVAL '1 month'))
+            ORDER BY os.end_plan_date ASC, COALESCE(os.progress_percentage, 0) ASC
+            """
+        )
+        rows = cursor.fetchall()
+        cursor.close(); conn.close()
+        return {"items": rows, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+    except Exception as e:
+        return {"items": [], "error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
