@@ -714,29 +714,17 @@ async def okr_operational_summary() -> Dict[str, Any]:
         cursor.execute("SELECT COUNT(*) AS cnt FROM system_okr")
         total_in_work = int((cursor.fetchone() or {}).get("cnt", 0))
 
-        # KPI: всего выполнено (когда-либо)
+        # KPI: счетчики по фазам из okr_summary
         cursor.execute("""
-            SELECT COUNT(*) AS cnt
-            FROM okr_status
-            WHERE status_id = %s
-        """, (st_done,))
-        total_done = int((cursor.fetchone() or {}).get("cnt", 0))
-
-        # KPI: горящие (в работе и плановая дата окончания < today)
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt
-            FROM okr_status
-            WHERE status_id = %s AND end_plan_date IS NOT NULL AND end_plan_date < %s
-        """, (st_in_progress, today))
-        overdue_now = int((cursor.fetchone() or {}).get("cnt", 0))
-
-        # KPI: средний % выполнения по задачам в работе
-        cursor.execute("""
-            SELECT AVG(progress_percentage)::float AS avg_progress
-            FROM okr_status
-            WHERE status_id = %s
-        """, (st_in_progress,))
-        avg_progress = float((cursor.fetchone() or {}).get("avg_progress", 0.0) or 0.0)
+            SELECT current_phase, COUNT(*) AS cnt
+            FROM okr_summary
+            WHERE current_phase IN ('ТЗ', 'ОО', 'ПИ')
+            GROUP BY current_phase
+        """)
+        phase_counts = {r["current_phase"]: int(r["cnt"]) for r in cursor.fetchall()}
+        phase_tz = phase_counts.get("ТЗ", 0)
+        phase_oo = phase_counts.get("ОО", 0)
+        phase_pi = phase_counts.get("ПИ", 0)
 
         # KPI: полностью выполнено ОКР — количество строк во вью okr_ready
         try:
@@ -747,9 +735,9 @@ async def okr_operational_summary() -> Dict[str, Any]:
 
         kpi = {
             "total_in_work": total_in_work,
-            "total_done": total_done,
-            "overdue_now": overdue_now,
-            "avg_progress_in_work": round(avg_progress, 2),
+            "phase_tz": phase_tz,
+            "phase_oo": phase_oo,
+            "phase_pi": phase_pi,
             "total_ready": total_ready,
         }
 

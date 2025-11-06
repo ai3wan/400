@@ -76,20 +76,20 @@
         <div class="kpi-label">Всего ОКР в работе</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-value" id="okr-kpi-done">0</div>
-        <div class="kpi-label">Всего выполнено</div>
+        <div class="kpi-value" id="okr-kpi-tz">0</div>
+        <div class="kpi-label">На этапе Технического задания</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="okr-kpi-oo">0</div>
+        <div class="kpi-label">На этапе Опытного образца</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="okr-kpi-pi">0</div>
+        <div class="kpi-label">На этапе Приемочных испытаний</div>
       </div>
       <div class="card kpi-card">
         <div class="kpi-value" id="okr-kpi-ready">0</div>
         <div class="kpi-label">Полностью выполнено ОКР</div>
-      </div>
-      <div class="card kpi-card">
-        <div class="kpi-value" id="okr-kpi-overdue">0</div>
-        <div class="kpi-label">С нарушением срока (горящие)</div>
-      </div>
-      <div class="card kpi-card">
-        <div class="kpi-value" id="okr-kpi-avg">0%</div>
-        <div class="kpi-label">Средний % выполнения (в работе)</div>
       </div>
     </div>
 
@@ -145,6 +145,11 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top:20px;">
+      <div class="chart-title">Риски: по компаниям</div>
+      <div id="okrRiskCompanyPie" class="chart-container"></div>
+    </div>
+    
     </div>
   
   <!-- Loading indicator -->
@@ -171,7 +176,14 @@ function initAuth(){
 
 let OKR={};
 async function loadData(){const res=await fetch('/api/okr/operational-summary');if(!res.ok)throw new Error('HTTP '+res.status);OKR=await res.json();}
-function setKPI(){const k=OKR.kpi||{};document.getElementById('okr-kpi-inwork').innerText=(k.total_in_work||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-done').innerText=(k.total_done||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-ready').innerText=(k.total_ready||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-overdue').innerText=(k.overdue_now||0).toLocaleString('ru-RU');document.getElementById('okr-kpi-avg').innerText=((k.avg_progress_in_work||0).toFixed(0))+'%';}
+function setKPI(){
+  const k = OKR.kpi || {};
+  document.getElementById('okr-kpi-inwork').innerText = (k.total_in_work || 0).toLocaleString('ru-RU');
+  document.getElementById('okr-kpi-tz').innerText = (k.phase_tz || 0).toLocaleString('ru-RU');
+  document.getElementById('okr-kpi-oo').innerText = (k.phase_oo || 0).toLocaleString('ru-RU');
+  document.getElementById('okr-kpi-pi').innerText = (k.phase_pi || 0).toLocaleString('ru-RU');
+  document.getElementById('okr-kpi-ready').innerText = (k.total_ready || 0).toLocaleString('ru-RU');
+}
 async function okrFunnelChart(){
   const el=echarts.init(document.getElementById('okrFunnel'));
   // Берём из нового API, чтобы учитывать current_phase + current_progress и порядок
@@ -242,11 +254,13 @@ async function loadPhaseDetails(phase, fullPhaseName){
   }catch(e){console.error('loadPhaseDetails error:',e);}
 }
 let RISK_EXPANDED = false;
+let RISK_ROWS = [];
 async function loadRiskSoon(){
   try{
     const res=await fetch('/api/okr/risk-soon');
     const payload = res.ok ? await res.json() : {items:[]};
     const rows = payload.items || [];
+    RISK_ROWS = rows;
     const title=document.getElementById('okrRiskTitle');
     if(title){ title.textContent = `🚨 Риски просрочки - [${rows.length}]`; }
     const body=document.getElementById('okrRiskSoonBody');
@@ -260,7 +274,28 @@ async function loadRiskSoon(){
     body.innerHTML = html + moreRow || '<tr><td colspan="5" style="opacity:.6;">Нет данных</td></tr>';
     const btn = document.getElementById('okrRiskToggle');
     if(btn){ btn.textContent = RISK_EXPANDED ? '▾' : '▸'; }
+    // render company pie
+    okrRiskCompanyPieChart();
   }catch(e){ console.error('loadRiskSoon error:', e); }
+}
+function okrRiskCompanyPieChart(){
+  try{
+    const el = echarts.init(document.getElementById('okrRiskCompanyPie'));
+    // aggregate by supplier_name
+    const map = new Map();
+    (RISK_ROWS||[]).forEach(r=>{
+      const key = (r.supplier_name||'—');
+      map.set(key, (map.get(key)||0)+1);
+    });
+    // convert to array and sort desc
+    const dataArr = Array.from(map.entries()).map(([name,count])=>({name,value:count})).sort((a,b)=>b.value-a.value);
+    el.setOption({
+      tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
+      legend:{type:'scroll',bottom:0},
+      series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data:dataArr}]
+    });
+    window.addEventListener('resize',()=>el.resize());
+  }catch(e){ console.error('okrRiskCompanyPieChart error:', e); }
 }
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
