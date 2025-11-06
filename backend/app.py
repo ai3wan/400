@@ -977,6 +977,7 @@ async def okr_risk_soon() -> Dict[str, Any]:
             JOIN work_phases wp ON wp.id = os.work_phase_id
             WHERE os.end_plan_date IS NOT NULL
               AND date_trunc('month', os.end_plan_date) <= date_trunc('month', (CURRENT_DATE + INTERVAL '1 month'))
+              AND COALESCE(os.progress_percentage, 0) < 100
             ORDER BY os.end_plan_date ASC, COALESCE(os.progress_percentage, 0) ASC
             """
         )
