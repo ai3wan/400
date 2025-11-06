@@ -955,30 +955,84 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
 @app.get("/api/okr/risk-soon")
 async def okr_risk_soon() -> Dict[str, Any]:
     """
-    Риски просрочки: данные из представления okr_deadline_watch (уже отфильтрованы):
-      - progress < 100
-      - плановая дата просрочена, в текущем или следующем месяце
-    Возвращает system_name, supplier_name, phase, end_plan_date, current_progress.
-    Сортировка: end_plan_date ASC (NULLS LAST), progress ASC, system_name ASC.
+    Риски просрочки: предпочитаем представление okr_deadline_watch.
+    - Динамически определяем названия колонок и алиасим к uniform-выводу
+      (system_name, supplier_name, phase, end_plan_date, current_progress)
+    - Сортировка: end_plan_date ASC (NULLS LAST), progress ASC, system_name ASC
+    - Фолбэк: окр_summary с фильтрами (progress < 100, план в текущем/след. месяце)
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute(
-            """
-            SELECT 
-                system_name,
-                supplier_name,
-                current_phase AS phase,
-                end_plan_date,
-                COALESCE(current_progress, 0) AS current_progress
-            FROM okr_deadline_watch
-            ORDER BY end_plan_date ASC NULLS LAST,
-                     COALESCE(current_progress, 0) ASC,
-                     system_name ASC
-            """
-        )
-        rows = cursor.fetchall()
+
+        def detect_cols() -> Dict[str, str]:
+            cursor.execute(
+                """
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'okr_deadline_watch'
+                """
+            )
+            cols = {r["column_name"] for r in cursor.fetchall()}
+            mapping = {}
+            # system
+            for cand in ["system_name", "system", "system_title", "system_okr", "sys_name"]:
+                if cand in cols: mapping["system_name"] = cand; break
+            # supplier
+            for cand in ["supplier_name", "supplier", "company_name", "short_name"]:
+                if cand in cols: mapping["supplier_name"] = cand; break
+            # phase
+            for cand in ["current_phase", "phase", "work_phase"]:
+                if cand in cols: mapping["phase"] = cand; break
+            # end date
+            for cand in ["end_plan_date", "plan_end_date", "plan_date", "end_date"]:
+                if cand in cols: mapping["end_plan_date"] = cand; break
+            # progress
+            for cand in ["current_progress", "progress", "progress_percentage"]:
+                if cand in cols: mapping["current_progress"] = cand; break
+            return mapping
+
+        rows: List[Dict[str, Any]] = []
+        try:
+            mapping = detect_cols()
+            if {"system_name","supplier_name","phase","end_plan_date","current_progress"}.issubset(mapping.keys()):
+                q = f"""
+                    SELECT 
+                        {mapping['system_name']} AS system_name,
+                        {mapping['supplier_name']} AS supplier_name,
+                        {mapping['phase']} AS phase,
+                        {mapping['end_plan_date']} AS end_plan_date,
+                        COALESCE({mapping['current_progress']}, 0) AS current_progress
+                    FROM okr_deadline_watch
+                    ORDER BY {mapping['end_plan_date']} ASC NULLS LAST,
+                             COALESCE({mapping['current_progress']}, 0) ASC,
+                             {mapping['system_name']} ASC
+                """
+                cursor.execute(q)
+                rows = cursor.fetchall()
+        except Exception:
+            rows = []
+
+        if not rows:
+            # Фолбэк
+            cursor.execute(
+                """
+                SELECT 
+                    os.system_name,
+                    os.supplier_name,
+                    os.current_phase AS phase,
+                    os.end_plan_date,
+                    COALESCE(os.current_progress, 0) AS current_progress
+                FROM okr_summary os
+                WHERE COALESCE(os.current_progress, 0) < 100
+                  AND os.end_plan_date IS NOT NULL
+                  AND date_trunc('month', os.end_plan_date) <= date_trunc('month', (CURRENT_DATE + INTERVAL '1 month'))
+                ORDER BY os.end_plan_date ASC NULLS LAST,
+                         COALESCE(os.current_progress, 0) ASC,
+                         os.system_name ASC
+                """
+            )
+            rows = cursor.fetchall()
+
         cursor.close(); conn.close()
         return {"items": rows, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
     except Exception as e:
