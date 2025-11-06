@@ -306,7 +306,9 @@ function okrRiskCompanyPieChart(){
 }
 function okrRiskMonthPieChart(){
   try{
-    const el = echarts.init(document.getElementById('okrRiskMonthPie'));
+    const elDom = document.getElementById('okrRiskMonthPie');
+    if(!elDom){ return; }
+    const el = echarts.init(elDom);
     // aggregate by month from end_plan_date
     const map = new Map();
     (RISK_ROWS||[]).forEach(r=>{
@@ -328,11 +330,15 @@ function okrRiskMonthPieChart(){
       .map(([name,info])=>({name,value:info.count,sortKey:info.sortKey}))
       .sort((a,b)=>a.sortKey - b.sortKey)
       .map(({name,value})=>({name,value}));
+
+    const hasData = dataArr.length > 0;
+
     el.setOption({
       tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
       legend:{type:'scroll',bottom:0},
+      title: hasData ? undefined : { text:'Нет данных', left:'center', top:'middle', textStyle:{ color:'#999', fontSize:14 } },
       series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data:dataArr}]
-    });
+    }, true);
     window.addEventListener('resize',()=>el.resize());
   }catch(e){ console.error('okrRiskMonthPieChart error:', e); }
 }
