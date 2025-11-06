@@ -147,8 +147,8 @@
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
       <div class="card">
-        <div class="chart-title">Риски просрочки: по компаниям</div>
-        <div id="okrRiskCompanyPie" class="chart-container"></div>
+        <div class="chart-title">Топ-5 рисков просрочки: по компаниям</div>
+        <div id="okrRiskCompanyBar" class="chart-container"></div>
       </div>
       <div class="card">
         <div class="chart-title">Риски просрочки: по месяцам</div>
@@ -292,30 +292,88 @@ async function loadRiskSoon(){
     body.innerHTML = html + moreRow || '<tr><td colspan="5" style="opacity:.6;">Нет данных</td></tr>';
     const btn = document.getElementById('okrRiskToggle');
     if(btn){ btn.textContent = RISK_EXPANDED ? '▾' : '▸'; }
-    // render company pie
-    okrRiskCompanyPieChart();
+    // render company bar chart
+    okrRiskCompanyBarChart();
     okrRiskMonthPieChart();
     okrRiskCompanyTreemapChart();
   }catch(e){ console.error('loadRiskSoon error:', e); }
 }
-function okrRiskCompanyPieChart(){
+function okrRiskCompanyBarChart(){
   try{
-    const el = echarts.init(document.getElementById('okrRiskCompanyPie'));
+    const elDom = document.getElementById('okrRiskCompanyBar');
+    if(!elDom){ return; }
+    const el = echarts.init(elDom);
     // aggregate by supplier_name
     const map = new Map();
     (RISK_ROWS||[]).forEach(r=>{
       const key = (r.supplier_name||'—');
       map.set(key, (map.get(key)||0)+1);
     });
-    // convert to array and sort desc
-    const dataArr = Array.from(map.entries()).map(([name,count])=>({name,value:count})).sort((a,b)=>b.value-a.value);
+    // convert to array, sort desc, take top 5
+    const dataArr = Array.from(map.entries())
+      .map(([name,count])=>({name,value:count}))
+      .sort((a,b)=>b.value-a.value)
+      .slice(0,5);
+    
+    if(dataArr.length === 0){
+      el.setOption({
+        title: { text:'Нет данных', left:'center', top:'middle', textStyle:{ color:'#999', fontSize:14 } }
+      }, true);
+      return;
+    }
+    
+    const names = dataArr.map(d=>d.name);
+    const values = dataArr.map(d=>d.value);
+    
     el.setOption({
-      tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
-      legend:{type:'scroll',bottom:0},
-      series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data:dataArr}]
-    });
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          const p = params[0];
+          return `${p.name}<br/>${p.seriesName}: ${p.value}`;
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        name: 'Количество просрочек'
+      },
+      yAxis: {
+        type: 'category',
+        data: names,
+        inverse: true
+      },
+      series: [{
+        name: 'Просрочек',
+        type: 'bar',
+        data: values,
+        itemStyle: {
+          color: (params) => {
+            const maxVal = Math.max(...values);
+            const minVal = Math.min(...values);
+            if(maxVal === minVal) return '#F34C3F';
+            const ratio = (params.value - minVal) / (maxVal - minVal);
+            const r = Math.round(243 + ratio * (255 - 243));
+            const g = Math.round(76 - ratio * (76 - 215));
+            const b = Math.round(63 - ratio * (63 - 0));
+            return `rgb(${r},${g},${b})`;
+          }
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{c}'
+        }
+      }]
+    }, true);
     window.addEventListener('resize',()=>el.resize());
-  }catch(e){ console.error('okrRiskCompanyPieChart error:', e); }
+  }catch(e){ console.error('okrRiskCompanyBarChart error:', e); }
 }
 function okrRiskMonthPieChart(){
   try{
