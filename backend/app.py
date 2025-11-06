@@ -830,25 +830,38 @@ async def okr_operational_summary() -> Dict[str, Any]:
 @app.get("/api/okr/summary-by-phase")
 async def okr_summary_by_phase() -> Dict[str, Any]:
     """
-    Агрегация из представления okr_summary: количество текущих ОКР по фазам
-    (ТЗ, ОО, ПИ). Ожидается, что в представлении есть поле work_phase с этими
-    значениями. Возвращает массив [{phase, count}].
+    Агрегация из представления okr_summary: количество текущих ОКР:
+      - ТЗ
+      - ОО
+      - ПИ (не выполнено, progress < 100)
+      - Выполнено (ПИ с progress = 100)
+    Возвращает массив [{phase, count}].
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute(
             """
-            SELECT current_phase AS phase, COUNT(*) AS count
-            FROM okr_summary
-            GROUP BY current_phase
+            SELECT phase, count FROM (
+              SELECT 'ТЗ'::text AS phase, COUNT(*)::bigint AS count
+              FROM okr_summary WHERE current_phase = 'ТЗ'
+            UNION ALL
+              SELECT 'ОО'::text AS phase, COUNT(*)::bigint AS count
+              FROM okr_summary WHERE current_phase = 'ОО'
+            UNION ALL
+              SELECT 'ПИ'::text AS phase, COUNT(*)::bigint AS count
+              FROM okr_summary WHERE current_phase = 'ПИ' AND COALESCE(current_progress, 0) < 100
+            UNION ALL
+              SELECT 'Выполнено'::text AS phase, COUNT(*)::bigint AS count
+              FROM okr_summary WHERE current_phase = 'ПИ' AND COALESCE(current_progress, 0) = 100
+            ) t
             """
         )
         rows = cursor.fetchall()
         cursor.close(); conn.close()
 
-        # Упорядочим по привычному порядку фаз
-        order = {"ТЗ": 1, "ОО": 2, "ПИ": 3}
+        # Упорядочим: ТЗ -> ОО -> ПИ -> Выполнено
+        order = {"ТЗ": 1, "ОО": 2, "ПИ": 3, "Выполнено": 4}
         rows_sorted = sorted(rows, key=lambda r: order.get((r.get("phase") or ""), 99))
         return {"items": rows_sorted, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
     except Exception as e:
