@@ -710,12 +710,8 @@ async def okr_operational_summary() -> Dict[str, Any]:
         st_in_progress = name_to_status.get("в работе")
         st_done = name_to_status.get("выполнено")
 
-        # KPI: всего в работе
-        cursor.execute("""
-            SELECT COUNT(*) AS cnt
-            FROM okr_status
-            WHERE status_id = %s
-        """, (st_in_progress,))
+        # KPI: количество уникальных систем (строк в system_okr)
+        cursor.execute("SELECT COUNT(*) AS cnt FROM system_okr")
         total_in_work = int((cursor.fetchone() or {}).get("cnt", 0))
 
         # KPI: всего выполнено (когда-либо)
