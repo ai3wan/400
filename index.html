@@ -155,10 +155,10 @@ async function okrPhasePieChart(){
   const order={"ТЗ":1,"ОО":2,"ПИ":3};
   const full={"ТЗ":"Техническое задание","ОО":"Опытный образец","ПИ":"Приемочные испытания"};
   const data=raw.sort((a,b)=> (order[a.phase||'']||99)-(order[b.phase||'']||99))
-               .map(x=>({name: full[x.phase||''] || (x.phase||'—'), value:x.count||0}));
+               .map(x=>({name: (x.phase||'—'), value:x.count||0}));
   el.setOption({
     tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
-    legend:{bottom:0},
+    legend:{bottom:0, formatter: function(name){ return full[name] || name; }},
     series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data}]
   });
   window.addEventListener('resize',()=>el.resize());
