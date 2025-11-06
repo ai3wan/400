@@ -11,6 +11,7 @@ from datetime import datetime
 import os
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
+from datetime import date
 
 # Загрузка переменных окружения из .env файла
 load_dotenv()
@@ -685,6 +686,141 @@ async def get_companies_list(q: Optional[str] = None, limit: int = 1000) -> Dict
     except Exception as e:
         print(f"Companies list error: {e}")
         return {"items": [], "total": 0, "error": str(e)}
+
+@app.get("/api/okr/operational-summary")
+async def okr_operational_summary() -> Dict[str, Any]:
+    """
+    Оперативный сводный дашборд по таблице okr_status с lookup-таблицами:
+      - KPI: всего в работе; всего выполнено (когда-либо); горящие (в работе и end_plan_date < today);
+             средний % выполнения по задачам в работе
+      - Воронка по фазам: количество задач по каждой фазе (ТЗ/ОО/ПИ)
+      - Статус по фазам (stacked): по каждой фазе разбивка по статусам (не начато/в работе/выполнено)
+      - Топ-5 горящих задач: самые просроченные (в работе и end_plan_date < today)
+    """
+    try:
+        today = date.today()
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Получим id статусов по именам для точного сравнения (на случай различий регистра)
+        cursor.execute("SELECT id, name FROM work_statuses")
+        status_rows = cursor.fetchall()
+        name_to_status = { (r["name"].strip().lower() if r["name"] else ""): r["id"] for r in status_rows }
+        st_not_started = name_to_status.get("не начато")
+        st_in_progress = name_to_status.get("в работе")
+        st_done = name_to_status.get("выполнено")
+
+        # KPI: всего в работе
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM okr_status
+            WHERE status_id = %s
+        """, (st_in_progress,))
+        total_in_work = int((cursor.fetchone() or {}).get("cnt", 0))
+
+        # KPI: всего выполнено (когда-либо)
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM okr_status
+            WHERE status_id = %s
+        """, (st_done,))
+        total_done = int((cursor.fetchone() or {}).get("cnt", 0))
+
+        # KPI: горящие (в работе и плановая дата окончания < today)
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM okr_status
+            WHERE status_id = %s AND end_plan_date IS NOT NULL AND end_plan_date < %s
+        """, (st_in_progress, today))
+        overdue_now = int((cursor.fetchone() or {}).get("cnt", 0))
+
+        # KPI: средний % выполнения по задачам в работе
+        cursor.execute("""
+            SELECT AVG(progress_percentage)::float AS avg_progress
+            FROM okr_status
+            WHERE status_id = %s
+        """, (st_in_progress,))
+        avg_progress = float((cursor.fetchone() or {}).get("avg_progress", 0.0) or 0.0)
+
+        kpi = {
+            "total_in_work": total_in_work,
+            "total_done": total_done,
+            "overdue_now": overdue_now,
+            "avg_progress_in_work": round(avg_progress, 2),
+        }
+
+        # Воронка по фазам: общее количество задач на каждую фазу
+        cursor.execute("""
+            SELECT wp.name AS phase, COUNT(*) AS count
+            FROM okr_status os
+            JOIN work_phases wp ON wp.id = os.work_phase_id
+            GROUP BY wp.name
+            ORDER BY wp.name
+        """)
+        funnel_by_phase = cursor.fetchall()
+
+        # Статус по фазам (stacked): counts по статусам внутри каждой фазы
+        cursor.execute("""
+            SELECT wp.name AS phase, ws.name AS status, COUNT(*) AS count
+            FROM okr_status os
+            JOIN work_phases wp ON wp.id = os.work_phase_id
+            JOIN work_statuses ws ON ws.id = os.status_id
+            GROUP BY wp.name, ws.name
+            ORDER BY wp.name, ws.name
+        """)
+        rows = cursor.fetchall()
+        # нормализуем в структуру: { phase: { status: count } }
+        stacked_by_phase_status: Dict[str, Dict[str, int]] = {}
+        for r in rows:
+            phase = r.get("phase") or "—"
+            status = r.get("status") or "—"
+            count = int(r.get("count") or 0)
+            if phase not in stacked_by_phase_status:
+                stacked_by_phase_status[phase] = {}
+            stacked_by_phase_status[phase][status] = count
+
+        # Топ-5 горящих задач с максимальной просрочкой
+        cursor.execute("""
+            SELECT 
+                os.id,
+                so.name AS system_name,
+                COALESCE(c.short_name, '—') AS supplier,
+                wp.name AS work_phase,
+                os.end_plan_date,
+                (CURRENT_DATE - os.end_plan_date) AS days_overdue
+            FROM okr_status os
+            JOIN system_okr so ON so.id = os.system_id
+            JOIN work_phases wp ON wp.id = os.work_phase_id
+            LEFT JOIN company c ON c.id = os.supplier_id
+            WHERE os.status_id = %s 
+              AND os.end_plan_date IS NOT NULL 
+              AND os.end_plan_date < CURRENT_DATE
+            ORDER BY (CURRENT_DATE - os.end_plan_date) DESC
+            LIMIT 5
+        """, (st_in_progress,))
+        top_overdue = cursor.fetchall()
+
+        cursor.close(); conn.close()
+
+        return {
+            "kpi": kpi,
+            "funnel_by_phase": funnel_by_phase,
+            "stacked_by_phase_status": stacked_by_phase_status,
+            "top_overdue": top_overdue,
+            "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}
+        }
+    except Exception as e:
+        try:
+            cursor.close(); conn.close()
+        except Exception:
+            pass
+        return {
+            "kpi": {"total_in_work": 0, "total_done": 0, "overdue_now": 0, "avg_progress_in_work": 0},
+            "funnel_by_phase": [],
+            "stacked_by_phase_status": {},
+            "top_overdue": [],
+            "meta": {"generated_at": datetime.now().isoformat(), "error": str(e)}
+        }
 
 
 if __name__ == "__main__":
