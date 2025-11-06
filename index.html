@@ -155,6 +155,11 @@
         <div id="okrRiskMonthPie" class="chart-container"></div>
       </div>
     </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="chart-title">Риски просрочки: Treemap по компаниям</div>
+      <div id="okrRiskCompanyTreemap" class="chart-container" style="height:400px;"></div>
+    </div>
     
     </div>
   
@@ -290,6 +295,7 @@ async function loadRiskSoon(){
     // render company pie
     okrRiskCompanyPieChart();
     okrRiskMonthPieChart();
+    okrRiskCompanyTreemapChart();
   }catch(e){ console.error('loadRiskSoon error:', e); }
 }
 function okrRiskCompanyPieChart(){
@@ -348,6 +354,79 @@ function okrRiskMonthPieChart(){
     }, true);
     window.addEventListener('resize',()=>el.resize());
   }catch(e){ console.error('okrRiskMonthPieChart error:', e); }
+}
+function okrRiskCompanyTreemapChart(){
+  try{
+    const elDom = document.getElementById('okrRiskCompanyTreemap');
+    if(!elDom){ return; }
+    const el = echarts.init(elDom);
+    // aggregate by supplier_name
+    const map = new Map();
+    (RISK_ROWS||[]).forEach(r=>{
+      const key = (r.supplier_name||'—');
+      map.set(key, (map.get(key)||0)+1);
+    });
+    // convert to array and get min/max for color mapping
+    const dataArr = Array.from(map.entries()).map(([name,count])=>({name,value:count}));
+    if(dataArr.length === 0){
+      el.setOption({
+        title: { text:'Нет данных', left:'center', top:'middle', textStyle:{ color:'#999', fontSize:14 } }
+      }, true);
+      return;
+    }
+    const values = dataArr.map(d=>d.value);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    // color function: yellow (min) -> red (max)
+    const getColor = (val) => {
+      if(minVal === maxVal) return '#FFD700'; // yellow if all same
+      const ratio = (val - minVal) / (maxVal - minVal);
+      // yellow (#FFD700) to red (#F34C3F)
+      const r = Math.round(255 - ratio * (255 - 243));
+      const g = Math.round(215 - ratio * (215 - 76));
+      const b = Math.round(0 + ratio * (63 - 0));
+      return `rgb(${r},${g},${b})`;
+    };
+    // add color to each item
+    const treemapData = dataArr.map(d=>({
+      name: d.name,
+      value: d.value,
+      itemStyle: { color: getColor(d.value) }
+    }));
+    el.setOption({
+      tooltip: {
+        trigger: 'item',
+        formatter: (info) => {
+          const data = info.data;
+          return `${data.name}<br/>Рисков: ${data.value}`;
+        }
+      },
+      series: [{
+        type: 'treemap',
+        data: treemapData,
+        roam: false,
+        nodeClick: false,
+        breadcrumb: { show: false },
+        label: {
+          show: true,
+          formatter: '{b}\n{c}',
+          fontSize: 12
+        },
+        itemStyle: {
+          borderColor: '#fff',
+          borderWidth: 2,
+          gapWidth: 2
+        },
+        emphasis: {
+          itemStyle: {
+            borderColor: '#333',
+            borderWidth: 3
+          }
+        }
+      }]
+    }, true);
+    window.addEventListener('resize',()=>el.resize());
+  }catch(e){ console.error('okrRiskCompanyTreemapChart error:', e); }
 }
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
