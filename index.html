@@ -100,7 +100,10 @@
     </div>
 
     <div id="okrPhaseDetails" class="card" style="margin-top:20px;display:none;">
-      <div class="chart-title" id="okrPhaseDetailsTitle">Детали по фазе</div>
+      <div class="chart-title" id="okrPhaseDetailsTitle" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span>Детали по фазе</span>
+        <button id="okrPhaseDetailsClose" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text);">Закрыть</button>
+      </div>
       <div style="overflow:auto;">
         <table>
           <thead>
@@ -233,6 +236,8 @@ async function loadPhaseDetails(phase, fullPhaseName){
 async function init(){try{await loadData();setKPI();okrFunnelChart();await okrPhasePieChart();const body=document.getElementById('okrOverdueBody');const rows=(OKR.top_overdue||[]).map(r=>{const dt=(r.end_plan_date||'').slice(0,10);return `<tr><td>${r.id}</td><td>${(r.system_name||'').replace(/\"/g,'&quot;')}</td><td>${(r.supplier||'').replace(/\"/g,'&quot;')}</td><td>${(r.work_phase||'').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${r.days_overdue}</td></tr>`;}).join('');body.innerHTML=rows||'<tr><td colspan="6" style="opacity:.6;">Нет просроченных задач</td></tr>';document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
+const closeBtn=document.getElementById('okrPhaseDetailsClose');
+if(closeBtn){ closeBtn.onclick=()=>{ const el=document.getElementById('okrPhaseDetails'); if(el){ el.style.display='none'; } }; }
 initAuth();
 if(localStorage.getItem(AUTH_KEY)==='1'){init();}
 </script>
