@@ -715,16 +715,24 @@ async def okr_operational_summary() -> Dict[str, Any]:
         total_in_work = int((cursor.fetchone() or {}).get("cnt", 0))
 
         # KPI: счетчики по фазам из okr_summary
+        # ТЗ и ОО - все записи
         cursor.execute("""
             SELECT current_phase, COUNT(*) AS cnt
             FROM okr_summary
-            WHERE current_phase IN ('ТЗ', 'ОО', 'ПИ')
+            WHERE current_phase IN ('ТЗ', 'ОО')
             GROUP BY current_phase
         """)
         phase_counts = {r["current_phase"]: int(r["cnt"]) for r in cursor.fetchall()}
         phase_tz = phase_counts.get("ТЗ", 0)
         phase_oo = phase_counts.get("ОО", 0)
-        phase_pi = phase_counts.get("ПИ", 0)
+        
+        # ПИ - исключаем записи с progress = 100
+        cursor.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM okr_summary
+            WHERE current_phase = 'ПИ' AND COALESCE(current_progress, 0) < 100
+        """)
+        phase_pi = int((cursor.fetchone() or {}).get("cnt", 0))
 
         # KPI: полностью выполнено ОКР — количество строк во вью okr_ready
         try:
