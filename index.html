@@ -119,44 +119,6 @@
       </div>
     </div>
 
-    <div class="card" style="margin-top:20px;">
-      <div class="chart-title">Топ-5 горящих задач</div>
-      <div style="overflow:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Система</th>
-              <th>Поставщик</th>
-              <th>Фаза</th>
-              <th>Плановая дата</th>
-              <th>Дней просрочки</th>
-            </tr>
-          </thead>
-          <tbody id="okrOverdueBody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card" style="margin-top:20px;">
-      <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <span>🚨 Риски просрочки</span>
-        <button id="okrRiskToggle" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text);">Развернуть</button>
-      </div>
-      <div style="overflow:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>Система</th>
-              <th>Поставщик</th>
-              <th>Фаза</th>
-              <th>Плановая дата</th>
-              <th>Процент готовности</th>
-            </tr>
-          </thead>
-          <tbody id="okrRiskSoonBody"></tbody>
-        </table>
-      </div>
-    </div>
     </div>
   
   <!-- Loading indicator -->
@@ -275,7 +237,7 @@ async function loadRiskSoon(){
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
 if(riskToggleBtn){ riskToggleBtn.onclick = async ()=>{ RISK_EXPANDED = !RISK_EXPANDED; await loadRiskSoon(); }; }
-async function init(){try{await loadData();setKPI();okrFunnelChart();await okrPhasePieChart();await loadRiskSoon();const body=document.getElementById('okrOverdueBody');const rows=(OKR.top_overdue||[]).map(r=>{const dt=(r.end_plan_date||'').slice(0,10);return `<tr><td>${r.id}</td><td>${(r.system_name||'').replace(/\"/g,'&quot;')}</td><td>${(r.supplier||'').replace(/\"/g,'&quot;')}</td><td>${(r.work_phase||'').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${r.days_overdue}</td></tr>`;}).join('');body.innerHTML=rows||'<tr><td colspan=\"6\" style=\"opacity:.6;\">Нет просроченных задач</td></tr>';document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style=\"background:var(--c-card);padding:32px;border-radius:16px;text-align:center;\"><div style=\"font-size:48px;margin-bottom:16px;\">❌</div><div style=\"font-size:18px;font-weight:600;color:var(--c-red);\">Ошибка загрузки данных</div><div style=\"margin-top:12px;\">'+e.message+'</div></div>';}}
+async function init(){try{await loadData();setKPI();okrFunnelChart();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
