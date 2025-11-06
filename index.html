@@ -271,10 +271,17 @@ async function loadRiskSoon(){
     if(title){ title.textContent = `🚨 Риски просрочки - [${rows.length}]`; }
     const body=document.getElementById('okrRiskSoonBody');
     const toShow = RISK_EXPANDED ? rows : rows.slice(0,5);
+    const now = new Date();
+    const nowYM = now.getFullYear()*100 + now.getMonth();
     const html = toShow.map(r=>{
-      const dt=(r.end_plan_date||'').slice(0,10)||'—';
+      const dtStr = (r.end_plan_date||'');
+      const dt = dtStr ? new Date(dtStr) : null;
+      const ym = dt && !isNaN(dt.getTime()) ? dt.getFullYear()*100 + dt.getMonth() : null;
+      const isPastMonth = ym !== null && ym < nowYM;
+      const rowStyle = isPastMonth ? ' style="background: rgba(243,76,63,0.10);"' : '';
+      const dtDisp = (dtStr||'').slice(0,10) || '—';
       const progress=Number(r.current_progress||0);
-      return `<tr><td>${(r.system_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.supplier_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.phase||'—').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${progress}%</td></tr>`;
+      return `<tr${rowStyle}><td>${(r.system_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.supplier_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.phase||'—').replace(/\"/g,'&quot;')}</td><td>${dtDisp}</td><td>${progress}%</td></tr>`;
     }).join('');
     const moreRow = (!RISK_EXPANDED && rows.length>5) ? '<tr><td colspan="5" style="text-align:center; opacity:.6;">...</td></tr>' : '';
     body.innerHTML = html + moreRow || '<tr><td colspan="5" style="opacity:.6;">Нет данных</td></tr>';
