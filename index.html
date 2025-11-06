@@ -99,6 +99,23 @@
       </div>
     </div>
 
+    <div id="okrPhaseDetails" class="card" style="margin-top:20px;display:none;">
+      <div class="chart-title" id="okrPhaseDetailsTitle">Детали по фазе</div>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Система</th>
+              <th>Поставщик</th>
+              <th>Плановая дата окончания</th>
+              <th>Процент готовности</th>
+            </tr>
+          </thead>
+          <tbody id="okrPhaseDetailsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card" style="margin-top:20px;">
       <div class="chart-title">Топ-5 горящих задач</div>
       <div style="overflow:auto;">
@@ -188,7 +205,30 @@ async function okrPhasePieChart(){
     legend:{bottom:0, formatter: function(name){ return full[name] || name; }},
     series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data}]
   });
+  // Обработчик клика для drill-down
+  el.on('click', async (params) => {
+    const phase = params.name;
+    await loadPhaseDetails(phase, full[phase] || phase);
+  });
   window.addEventListener('resize',()=>el.resize());
+}
+async function loadPhaseDetails(phase, fullPhaseName){
+  try{
+    const res=await fetch(`/api/okr/details-by-phase?phase=${encodeURIComponent(phase)}`);
+    const payload=res.ok ? await res.json() : {items:[]};
+    const rows=payload.items||[];
+    const body=document.getElementById('okrPhaseDetailsBody');
+    const titleEl=document.getElementById('okrPhaseDetailsTitle');
+    const detailsEl=document.getElementById('okrPhaseDetails');
+    titleEl.innerText=`Детали по фазе: ${fullPhaseName}`;
+    const html=rows.map(r=>{
+      const dt=(r.end_plan_date||'').slice(0,10)||'—';
+      const progress=Number(r.current_progress||0);
+      return `<tr><td>${(r.system_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.supplier_name||'—').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${progress}%</td></tr>`;
+    }).join('');
+    body.innerHTML=html||'<tr><td colspan="4" style="opacity:.6;">Нет данных</td></tr>';
+    detailsEl.style.display='block';
+  }catch(e){console.error('loadPhaseDetails error:',e);}
 }
 async function init(){try{await loadData();setKPI();okrFunnelChart();await okrPhasePieChart();const body=document.getElementById('okrOverdueBody');const rows=(OKR.top_overdue||[]).map(r=>{const dt=(r.end_plan_date||'').slice(0,10);return `<tr><td>${r.id}</td><td>${(r.system_name||'').replace(/\"/g,'&quot;')}</td><td>${(r.supplier||'').replace(/\"/g,'&quot;')}</td><td>${(r.work_phase||'').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${r.days_overdue}</td></tr>`;}).join('');body.innerHTML=rows||'<tr><td colspan="6" style="opacity:.6;">Нет просроченных задач</td></tr>';document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
