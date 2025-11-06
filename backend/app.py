@@ -955,10 +955,11 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
 @app.get("/api/okr/risk-soon")
 async def okr_risk_soon() -> Dict[str, Any]:
     """
-    Риски просрочки: выбираем элементы, у которых плановая дата окончания
-    в пределах текущего месяца или следующего месяца.
-    Возвращает system_name, supplier_name, phase (wp.name), end_plan_date, current_progress.
-    Сортировка: end_plan_date ASC, progress ASC.
+    Риски просрочки: данные из представления okr_deadline_watch (уже отфильтрованы):
+      - progress < 100
+      - плановая дата просрочена, в текущем или следующем месяце
+    Возвращает system_name, supplier_name, phase, end_plan_date, current_progress.
+    Сортировка: end_plan_date ASC (NULLS LAST), progress ASC, system_name ASC.
     """
     try:
         conn = get_db_connection()
@@ -966,19 +967,15 @@ async def okr_risk_soon() -> Dict[str, Any]:
         cursor.execute(
             """
             SELECT 
-                so.name AS system_name,
-                COALESCE(c.short_name, '—') AS supplier_name,
-                wp.name AS phase,
-                os.end_plan_date,
-                COALESCE(os.progress_percentage, 0) AS current_progress
-            FROM okr_status os
-            JOIN system_okr so ON so.id = os.system_id
-            LEFT JOIN company c ON c.id = os.supplier_id
-            JOIN work_phases wp ON wp.id = os.work_phase_id
-            WHERE os.end_plan_date IS NOT NULL
-              AND date_trunc('month', os.end_plan_date) <= date_trunc('month', (CURRENT_DATE + INTERVAL '1 month'))
-              AND COALESCE(os.progress_percentage, 0) < 100
-            ORDER BY os.end_plan_date ASC, COALESCE(os.progress_percentage, 0) ASC
+                system_name,
+                supplier_name,
+                current_phase AS phase,
+                end_plan_date,
+                COALESCE(current_progress, 0) AS current_progress
+            FROM okr_deadline_watch
+            ORDER BY end_plan_date ASC NULLS LAST,
+                     COALESCE(current_progress, 0) ASC,
+                     system_name ASC
             """
         )
         rows = cursor.fetchall()
