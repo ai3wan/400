@@ -482,7 +482,10 @@ function okrRiskCompanyTreemapChart(){
           show: true,
           formatter: params => params.name,
           fontSize: 12,
-          color: '#000'
+          color: '#555',
+          textStyle: {
+            fontFamily: 'Moscow Sans, sans-serif'
+          }
         },
         itemStyle: {
           borderColor: '#fff',
@@ -494,7 +497,12 @@ function okrRiskCompanyTreemapChart(){
             borderColor: '#333',
             borderWidth: 3
           },
-          label: { color: '#000' }
+          label: { 
+            color: '#555',
+            textStyle: {
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          }
         }
       }]
     }, true);
