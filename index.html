@@ -303,15 +303,19 @@ function okrRiskCompanyBarChart(){
     const elDom = document.getElementById('okrRiskCompanyBar');
     if(!elDom){ return; }
     const el = echarts.init(elDom);
-    // aggregate by supplier_name
+    // aggregate by supplier_name and collect systems
     const map = new Map();
     (RISK_ROWS||[]).forEach(r=>{
       const key = (r.supplier_name||'—');
-      map.set(key, (map.get(key)||0)+1);
+      if(!map.has(key)){
+        map.set(key, {count:0, systems:new Set()});
+      }
+      map.get(key).count++;
+      if(r.system_name) map.get(key).systems.add(r.system_name);
     });
     // convert to array, sort desc, take top 5
     const dataArr = Array.from(map.entries())
-      .map(([name,count])=>({name,value:count}))
+      .map(([name,info])=>({name,value:info.count,systems:Array.from(info.systems)}))
       .sort((a,b)=>b.value-a.value)
       .slice(0,5);
     
@@ -324,6 +328,7 @@ function okrRiskCompanyBarChart(){
     
     const names = dataArr.map(d=>d.name);
     const values = dataArr.map(d=>d.value);
+    const systemsMap = new Map(dataArr.map(d=>[d.name, d.systems]));
     
     el.setOption({
       tooltip: {
@@ -331,7 +336,13 @@ function okrRiskCompanyBarChart(){
         axisPointer: { type: 'shadow' },
         formatter: (params) => {
           const p = params[0];
-          return `${p.name}<br/>${p.seriesName}: ${p.value}`;
+          const companyName = p.name;
+          const systems = systemsMap.get(companyName) || [];
+          let tooltipText = `${companyName}<br/>Просрочек: ${p.value}`;
+          if(systems.length > 0){
+            tooltipText += '<br/><br/>Системы:<br/>' + systems.map(s=>`• ${s}`).join('<br/>');
+          }
+          return tooltipText;
         }
       },
       grid: {
@@ -359,9 +370,11 @@ function okrRiskCompanyBarChart(){
             const minVal = Math.min(...values);
             if(maxVal === minVal) return '#F34C3F';
             const ratio = (params.value - minVal) / (maxVal - minVal);
-            const r = Math.round(243 + ratio * (255 - 243));
-            const g = Math.round(76 - ratio * (76 - 215));
-            const b = Math.round(63 - ratio * (63 - 0));
+            // градиент: желтый (min) -> красный (max)
+            // желтый #FFD700 = rgb(255,215,0), красный #F34C3F = rgb(243,76,63)
+            const r = Math.round(255 - ratio * (255 - 243));
+            const g = Math.round(215 - ratio * (215 - 76));
+            const b = Math.round(0 + ratio * 63);
             return `rgb(${r},${g},${b})`;
           }
         },
