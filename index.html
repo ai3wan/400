@@ -411,15 +411,34 @@ function okrRiskMonthPieChart(){
     });
     // convert to array and sort by date (asc)
     const dataArr = Array.from(map.entries())
-      .map(([name,info])=>({name,value:info.count,sortKey:info.sortKey}))
+      .map(([name,info])=>({name,value:info.count,sortKey:info.sortKey,monthName:name}))
       .sort((a,b)=>a.sortKey - b.sortKey)
-      .map(({name,value})=>({name,value}));
+      .map(({name,value,monthName})=>({name:`${value}\n${monthName}`,value,monthName}));
 
     const hasData = dataArr.length > 0;
 
     el.setOption({
-      tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
-      legend:{type:'scroll',bottom:0},
+      tooltip:{trigger:'item',formatter:(params)=>{return `${params.data.monthName}: ${params.value} (${params.percent}%)`;}},
+      legend:{
+        type:'scroll',
+        bottom:0,
+        formatter: (name) => {
+          const parts = name.split('\n');
+          const count = parts[0];
+          const month = parts[1] || '';
+          return `{bold|${count}}\n${month}`;
+        },
+        textStyle: {
+          fontFamily: 'Moscow Sans, sans-serif',
+          rich: {
+            bold: {
+              fontSize: 16,
+              fontWeight: 'bold',
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          }
+        }
+      },
       title: hasData ? undefined : { text:'Нет данных', left:'center', top:'middle', textStyle:{ color:'#999', fontSize:14 } },
       series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data:dataArr}]
     }, true);
