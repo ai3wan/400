@@ -909,7 +909,7 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
             LEFT JOIN company c ON c.id = os.supplier_id
             JOIN work_phases wp ON wp.id = os.work_phase_id
             WHERE wp.name = %s AND COALESCE(os.progress_percentage, 0) < 100
-            ORDER BY so.name ASC
+            ORDER BY os.end_plan_date ASC NULLS LAST, COALESCE(os.progress_percentage, 0) ASC, so.name ASC
             """,
             (phase,)
         )
