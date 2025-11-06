@@ -398,7 +398,7 @@ function okrRiskCompanyTreemapChart(){
         trigger: 'item',
         formatter: (info) => {
           const data = info.data;
-          return `${data.name}<br/>Рисков: ${data.value}`;
+          return `${data.name} - ${data.value} просрочек`;
         }
       },
       series: [{
@@ -409,8 +409,9 @@ function okrRiskCompanyTreemapChart(){
         breadcrumb: { show: false },
         label: {
           show: true,
-          formatter: '{b}\n{c}',
-          fontSize: 12
+          formatter: params => `${params.name} - ${params.value} просрочек`,
+          fontSize: 12,
+          color: '#000'
         },
         itemStyle: {
           borderColor: '#fff',
@@ -421,7 +422,8 @@ function okrRiskCompanyTreemapChart(){
           itemStyle: {
             borderColor: '#333',
             borderWidth: 3
-          }
+          },
+          label: { color: '#000' }
         }
       }]
     }, true);
