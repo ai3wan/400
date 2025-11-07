@@ -399,6 +399,15 @@ function getMonday(date){
   return d;
 }
 
+function getWeekEnd(date){
+  const d = new Date(date.getTime());
+  const day = d.getUTCDay() || 7;
+  if(day !== 7){
+    d.setUTCDate(d.getUTCDate() + (7 - day));
+  }
+  return d;
+}
+
 function getISOWeekNumber(date){
   const target = new Date(date.getTime());
   target.setUTCHours(0,0,0,0);
@@ -446,7 +455,7 @@ function visitsCalendarChart(){
   if(!chart) return;
   const rawEntries = VISITS_DATA?.calendar || [];
   const range = VISITS_DATA?.calendar_range;
-  const rangeValue = (range && range.start && range.end) ? [range.start, range.end] : `${new Date().getFullYear()}`;
+  let rangeValue = `${new Date().getFullYear()}`;
 
   const monthNameMap = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 
@@ -467,8 +476,10 @@ function visitsCalendarChart(){
     const startDate = parseISODate(range.start);
     const endDate = parseISODate(range.end);
     if(startDate && endDate){
-      const firstMonday = getMonday(startDate);
-      for(let current = new Date(firstMonday.getTime()); current <= endDate; current.setUTCDate(current.getUTCDate() + 7)){
+      const alignedStart = getMonday(startDate);
+      const alignedEnd = getWeekEnd(endDate);
+      rangeValue = [toISODateString(alignedStart), toISODateString(alignedEnd)];
+      for(let current = new Date(alignedStart.getTime()); current <= alignedEnd; current.setUTCDate(current.getUTCDate() + 7)){
         weekNumberData.push({
           value: [toISODateString(current), 0],
           week: getISOWeekNumber(current)
@@ -482,7 +493,7 @@ function visitsCalendarChart(){
       top: 60,
       left: 70,
       right: 20,
-      bottom: 90,
+      bottom: 80,
       cellSize: ['auto', 26],
       range: rangeValue,
       firstDay: 1,
@@ -493,7 +504,9 @@ function visitsCalendarChart(){
       },
       yearLabel: { show: false },
       monthLabel: {
-        margin: 18,
+        margin: 28,
+        position: 'start',
+        align: 'left',
         color: 'var(--c-text)',
         fontFamily: 'Moscow Sans, sans-serif',
         nameMap: monthNameMap
