@@ -468,19 +468,7 @@ function visitsCalendarChart(){
         const isoWeek = getISOWeekNumber(current);
         weekNumberData.push({
           value: [toISODateString(current), 0],
-          week: isoWeek,
-          label: {
-            show: true,
-            position: 'left',
-            formatter: (params) => `Нед ${params.data.week}`,
-            color: 'rgba(19,84,87,0.7)',
-            fontFamily: 'Moscow Sans, sans-serif',
-            fontSize: 11,
-            offset: [-26, 0]
-          },
-          symbolSize: 1,
-          itemStyle: { color: 'transparent' },
-          silent: true,
+          week: isoWeek
         });
       }
     }
@@ -518,6 +506,7 @@ function visitsCalendarChart(){
       top: 60,
       left: 70,
       right: 20,
+      bottom: 50,
       cellSize: ['auto', 26],
       range: rangeValue,
       firstDay: 1,
@@ -555,7 +544,7 @@ function visitsCalendarChart(){
           fontSize: 11,
           formatter: (params) => `${params.data.week}`,
           position: 'bottom',
-          offset: [0, 14],
+          offset: [0, 28],
           align: 'center'
         },
         itemStyle: { color: 'transparent' },
