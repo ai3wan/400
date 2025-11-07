@@ -475,7 +475,7 @@ function visitsCalendarChart(){
     top: 60,
     left: 70,
     right: 20,
-    bottom: 70,
+    bottom: 90,
     cellSize: [26, 26],
     range: rangeValue,
     firstDay: 1,
@@ -486,6 +486,10 @@ function visitsCalendarChart(){
     },
     yearLabel: { show: false },
     monthLabel: {
+      align: 'left',
+      margin: 16,
+      color: 'var(--c-text)',
+      fontFamily: 'Moscow Sans, sans-serif',
       formatter: (value) => {
         const parts = String(value).split('-');
         if(parts.length >= 2){
@@ -495,9 +499,7 @@ function visitsCalendarChart(){
           }
         }
         return value;
-      },
-      color: 'var(--c-text)',
-      fontFamily: 'Moscow Sans, sans-serif'
+      }
     },
     dayLabel: {
       position: 'top',
@@ -549,8 +551,7 @@ function visitsCalendarChart(){
         label: {
           show: true,
           formatter: (params) => `${params.data.week}`,
-          position: 'bottom',
-          offset: [0, 32],
+          position: [0, 40],
           color: 'rgba(19,84,87,0.7)',
           fontSize: 12,
           fontFamily: 'Moscow Sans, sans-serif'
