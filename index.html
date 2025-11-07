@@ -476,7 +476,7 @@ function visitsCalendarChart(){
     left: 70,
     right: 20,
     bottom: 70,
-    cellSize: ['auto', 26],
+    cellSize: [26, 26],
     range: rangeValue,
     firstDay: 1,
     itemStyle: {
@@ -514,86 +514,49 @@ function visitsCalendarChart(){
       position: 'top',
       formatter: (params) => {
         const item = params?.data || {};
+        const value = Array.isArray(item.value) ? Number(item.value[1]) || 0 : Number(item.count) || 0;
+        const dateValue = Array.isArray(item.value) ? item.value[0] : item.date;
         const label = item.hasMoscow ? 'Москва' : 'Командировка';
-        return `${formatDate(item.date)}: ${formatNumber(item.count)}<br/>${label}`;
+        return `${formatDate(dateValue)}: ${formatNumber(value)}<br/>${label}`;
       }
     },
     series: [
       {
-        type: 'custom',
+        type: 'heatmap',
         coordinateSystem: 'calendar',
-        renderItem: (params, api) => {
-          const idx = params.dataIndex;
-          const item = data[idx];
-          if(!item) return;
-          const dateCoord = api.coord([item.date, 0]);
-          const cellSize = api.size([1, 1]);
-          const border = 2;
-          return {
-            type: 'rect',
-            shape: {
-              x: dateCoord[0] + border / 2,
-              y: dateCoord[1] + border / 2,
-              width: cellSize[0] - border,
-              height: cellSize[1] - border
-            },
-            style: {
-              fill: item.hasMoscow ? '#F34C3F' : '#038681'
-            }
-          };
-        },
-        data
+        data: data.map(item => ({
+          value: [item.date, item.count],
+          hasMoscow: item.hasMoscow,
+          itemStyle: {
+            color: item.hasMoscow ? '#F34C3F' : (item.count > 0 ? '#038681' : 'rgba(3,134,129,0.15)'),
+            borderRadius: 6
+          },
+          label: {
+            show: item.count > 0,
+            formatter: ({ value }) => (value && value[1] ? value[1] : ''),
+            color: '#ffffff',
+            fontFamily: 'Moscow Sans, sans-serif',
+            fontSize: 12,
+            fontWeight: 600
+          }
+        }))
       },
       {
-        type: 'custom',
+        type: 'scatter',
         coordinateSystem: 'calendar',
-        renderItem: (params, api) => {
-          const item = data[params.dataIndex];
-          if(!item) return;
-          const value = item.count;
-          if(!value) return;
-          const dateCoord = api.coord([item.date, 0]);
-          const cellSize = api.size([1, 1]);
-          return {
-            type: 'text',
-            style: {
-              text: `${value}`,
-              x: dateCoord[0] + cellSize[0] / 2,
-              y: dateCoord[1] + cellSize[1] / 2,
-              textAlign: 'center',
-              textVerticalAlign: 'middle',
-              fill: '#ffffff',
-              fontSize: 11,
-              fontFamily: 'Moscow Sans, sans-serif'
-            }
-          };
+        symbolSize: 1,
+        data: weekLabels.map(item => ({ value: [item.date, 0], week: item.week })),
+        label: {
+          show: true,
+          formatter: (params) => `${params.data.week}`,
+          position: 'bottom',
+          offset: [0, 32],
+          color: 'rgba(19,84,87,0.7)',
+          fontSize: 12,
+          fontFamily: 'Moscow Sans, sans-serif'
         },
-        data
-      },
-      {
-        type: 'custom',
-        coordinateSystem: 'calendar',
-        renderItem: (params, api) => {
-          const idx = params.dataIndex;
-          const item = weekLabels[idx];
-          if(!item) return;
-          const dateCoord = api.coord([item.date, 0]);
-          const cellSize = api.size([1, 1]);
-          return {
-            type: 'text',
-            style: {
-              text: `${item.week}`,
-              x: dateCoord[0] + cellSize[0] / 2,
-              y: dateCoord[1] + cellSize[1] + 24,
-              textAlign: 'center',
-              textVerticalAlign: 'top',
-              fill: 'rgba(19,84,87,0.7)',
-              fontSize: 12,
-              fontFamily: 'Moscow Sans, sans-serif'
-            }
-          };
-        },
-        data: weekLabels
+        itemStyle: { color: 'transparent' },
+        tooltip: { show: false }
       }
     ]
   }, true);
