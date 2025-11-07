@@ -826,40 +826,84 @@ async def okr_operational_summary() -> Dict[str, Any]:
 @app.get("/api/okr/summary-by-phase")
 async def okr_summary_by_phase() -> Dict[str, Any]:
     """
-    Агрегация из представления okr_summary: количество текущих ОКР:
-      - ТЗ
-      - ОО
-      - ПИ (не выполнено, progress < 100)
-      - Выполнено (ПИ с progress = 100)
-    Возвращает массив [{phase, count}].
+    Агрегация из представления okr_summary: количество текущих ОКР по фазам
+    с разбивкой по процентам готовности (0/25/50/75/100).
+    - ТЗ
+    - ОО
+    - ПИ (progress < 100)
+    - Выполнено (ПИ с progress = 100)
+    Возвращает массив [{phase, total, buckets: {"0": count, ...}}].
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+
         cursor.execute(
             """
-            SELECT phase, count FROM (
-              SELECT 'ТЗ'::text AS phase, COUNT(*)::bigint AS count
-              FROM okr_summary WHERE current_phase = 'ТЗ'
-            UNION ALL
-              SELECT 'ОО'::text AS phase, COUNT(*)::bigint AS count
-              FROM okr_summary WHERE current_phase = 'ОО'
-            UNION ALL
-              SELECT 'ПИ'::text AS phase, COUNT(*)::bigint AS count
-              FROM okr_summary WHERE current_phase = 'ПИ' AND COALESCE(current_progress, 0) < 100
-            UNION ALL
-              SELECT 'Выполнено'::text AS phase, COUNT(*)::bigint AS count
-              FROM okr_summary WHERE current_phase = 'ПИ' AND COALESCE(current_progress, 0) = 100
-            ) t
+            SELECT
+                CASE
+                    WHEN current_phase = 'ПИ' AND COALESCE(current_progress, 0) = 100 THEN 'Выполнено'
+                    ELSE current_phase
+                END AS phase,
+                COALESCE(current_progress, 0) AS progress,
+                COUNT(*) AS count
+            FROM okr_summary
+            WHERE current_phase IN ('ТЗ', 'ОО', 'ПИ')
+            GROUP BY 1, 2
             """
         )
         rows = cursor.fetchall()
         cursor.close(); conn.close()
 
-        # Упорядочим: ТЗ -> ОО -> ПИ -> Выполнено
-        order = {"ТЗ": 1, "ОО": 2, "ПИ": 3, "Выполнено": 4}
-        rows_sorted = sorted(rows, key=lambda r: order.get((r.get("phase") or ""), 99))
-        return {"items": rows_sorted, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+        # Инициализация фаз и бакетов
+        phase_order = ["ТЗ", "ОО", "ПИ", "Выполнено"]
+        buckets_keys = ["0", "25", "50", "75", "100"]
+        result_map: Dict[str, Dict[str, Any]] = {}
+
+        for phase in phase_order:
+            result_map[phase] = {
+                "phase": phase,
+                "total": 0,
+                "buckets": {key: 0 for key in buckets_keys}
+            }
+
+        for row in rows:
+            phase = (row.get("phase") or "").strip()
+            progress = int(row.get("progress") or 0)
+            count = int(row.get("count") or 0)
+
+            # Нормализуем фазы и бакеты
+            if phase not in result_map:
+                result_map[phase] = {
+                    "phase": phase,
+                    "total": 0,
+                    "buckets": {key: 0 for key in buckets_keys}
+                }
+
+            bucket_key = str(progress)
+            if bucket_key not in result_map[phase]["buckets"]:
+                # на случай нестандартных значений (например 10) округлим до ближайшего допустимого бакета
+                if progress <= 0:
+                    bucket_key = "0"
+                elif progress <= 25:
+                    bucket_key = "25"
+                elif progress <= 50:
+                    bucket_key = "50"
+                elif progress <= 75:
+                    bucket_key = "75"
+                else:
+                    bucket_key = "100"
+
+            result_map[phase]["buckets"][bucket_key] += count
+            result_map[phase]["total"] += count
+
+        # Формируем итоговый список в требуемом порядке
+        items = [result_map[phase] for phase in phase_order if phase in result_map]
+
+        return {
+            "items": items,
+            "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}
+        }
     except Exception as e:
         return {"items": [], "error": str(e)}
 

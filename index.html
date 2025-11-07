@@ -348,80 +348,97 @@ async function okrPhasePieChart(){
   const res=await fetch('/api/okr/summary-by-phase');
   const payload= res.ok ? await res.json() : {items:[]};
   const raw=(payload.items||[]);
-  // Гарантируем нужный порядок фаз
-  const order={"ТЗ":1,"ОО":2,"ПИ":3,"Выполнено":4};
+  // Порядок фаз и бакетов
+  const phaseOrder=["ТЗ","ОО","ПИ","Выполнено"];
   const full={"ТЗ":"Техническое задание","ОО":"Опытный образец","ПИ":"Приемочные испытания","Выполнено":"Выполнено"};
-  const sorted=raw.sort((a,b)=> (order[a.phase||'']||99)-(order[b.phase||'']||99));
-  const categories=sorted.map(x=>full[x.phase||'']||(x.phase||'—'));
-  const values=sorted.map(x=>x.count||0);
-  const phaseNames=sorted.map(x=>x.phase||'—');
-  
+  const bucketOrder=["0","25","50","75","100"];
+  const bucketLabels={"0":"0%","25":"25%","50":"50%","75":"75%","100":"100%"};
+  const bucketColors={"0":"#F34C3F","25":"#F3DCE7","50":"#92DAD9","75":"#038681","100":"#135457"};
+
+  const sorted = phaseOrder
+    .map(p => raw.find(x => (x.phase||'').trim() === p) || {phase:p,total:0,buckets:{"0":0,"25":0,"50":0,"75":0,"100":0}});
+
+  const categories = sorted.map(item => full[item.phase] || item.phase || '—');
+
+  const series = bucketOrder.map(bucket => ({
+    name: bucketLabels[bucket],
+    type: 'bar',
+    stack: 'total',
+    emphasis: { focus: 'series' },
+    itemStyle: {
+      color: bucketColors[bucket] || '#6b7280',
+      borderRadius: bucket === '100' ? [6,6,0,0] : 0
+    },
+    data: sorted.map(item => (item.buckets && typeof item.buckets[bucket] !== 'undefined') ? item.buckets[bucket] : 0)
+  }));
+
+  // Добавляем лейблы с общим количеством на верхнем бакете
+  const lastSeries = series[series.length - 1];
+  if(lastSeries){
+    lastSeries.label = {
+      show: true,
+      position: 'top',
+      formatter: (params) => {
+        const total = sorted[params.dataIndex]?.total || 0;
+        return total ? total.toString() : '';
+      },
+      fontFamily:'Moscow Sans, sans-serif'
+    };
+  }
+
   el.setOption({
     tooltip:{
       trigger:'axis',
       axisPointer:{type:'shadow'},
       formatter:(params)=>{
-        const p=params[0];
-        const idx=p.dataIndex;
-        return `${p.name}<br/>Количество: ${p.value}`;
+        const idx=params[0]?.dataIndex ?? 0;
+        const phaseKey = sorted[idx]?.phase;
+        const phaseName = full[phaseKey] || phaseKey || '—';
+        let lines = [`<strong>${phaseName}</strong>`];
+        params.forEach(p=>{
+          if(p.value){
+            lines.push(`${p.marker} ${p.seriesName}: ${p.value}`);
+          }
+        });
+        const total = sorted[idx]?.total || 0;
+        lines.push(`Итого: ${total}`);
+        return lines.join('<br/>');
       }
+    },
+    legend:{
+      bottom:0,
+      textStyle:{fontFamily:'Moscow Sans, sans-serif'},
+      data: bucketOrder.map(b => bucketLabels[b])
     },
     grid:{
       left:'3%',
       right:'4%',
-      bottom:'3%',
+      bottom:'10%',
       containLabel:true
     },
     xAxis:{
       type:'category',
       data:categories,
-      axisLabel:{
-        fontFamily:'Moscow Sans, sans-serif'
-      }
+      axisLabel:{fontFamily:'Moscow Sans, sans-serif'}
     },
     yAxis:{
       type:'value',
       name:'Количество',
-      nameTextStyle:{
-        fontFamily:'Moscow Sans, sans-serif'
-      }
+      nameTextStyle:{fontFamily:'Moscow Sans, sans-serif'}
     },
-    series:[{
-      name:'Количество',
-      type:'bar',
-      data:values.map((v,idx)=>({
-        value:v,
-        phase:phaseNames[idx]
-      })),
-      itemStyle:{
-        borderRadius:[6,6,0,0],
-        color:(params)=>{
-          const phase=params.data.phase;
-          const colors={"ТЗ":"#038681","ОО":"#92DAD9","ПИ":"#135457","Выполнено":"#F3DCE7"};
-          return colors[phase]||'#2A3043';
-        }
-      },
-      label:{
-        show:true,
-        position:'top',
-        formatter:'{c}',
-        fontFamily:'Moscow Sans, sans-serif'
-      }
-    }]
+    series
   });
-  // Обработчик клика для drill-down
+
+  // Клик по фазе для drill-down
+  el.off('click');
   el.on('click', async (params) => {
-    if(params.data && params.data.phase){
-      const phase=params.data.phase;
-      await loadPhaseDetails(phase, full[phase] || phase);
-    }else if(params.name){
-      // Fallback: пытаемся найти phase по полному названию
-      const phaseKey=Object.keys(full).find(k=>full[k]===params.name);
-      if(phaseKey){
-        await loadPhaseDetails(phaseKey, params.name);
-      }
+    const idx = params.dataIndex;
+    const phaseKey = sorted[idx]?.phase;
+    if(phaseKey){
+      await loadPhaseDetails(phaseKey, full[phaseKey] || phaseKey);
     }
   });
+
   window.addEventListener('resize',()=>el.resize());
 }
 async function loadPhaseDetails(phase, fullPhaseName){
