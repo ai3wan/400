@@ -957,7 +957,7 @@ async def visits_summary() -> Dict[str, Any]:
 
         recent_comment_key = "comment"
         recent_query_with_comment = """
-            WITH window AS (
+            WITH span_window AS (
                 SELECT CURRENT_DATE AS today,
                        CURRENT_DATE + INTERVAL '21 days' AS until
             )
@@ -970,14 +970,14 @@ async def visits_summary() -> Dict[str, Any]:
                 COALESCE(ca.period, '') AS period,
                 COALESCE(ca.comment, '') AS comment
             FROM company_audit ca
-            JOIN window w ON TRUE
+            JOIN span_window w ON TRUE
             LEFT JOIN company c ON c.id = ca.company_id
             LEFT JOIN system_okr so ON so.id = ca.system_okr_id
             WHERE ca.start_date BETWEEN w.today AND w.until
             ORDER BY ca.start_date ASC NULLS LAST, ca.id ASC
         """
         recent_query_without_comment = """
-            WITH window AS (
+            WITH span_window AS (
                 SELECT CURRENT_DATE AS today,
                        CURRENT_DATE + INTERVAL '21 days' AS until
             )
@@ -989,7 +989,7 @@ async def visits_summary() -> Dict[str, Any]:
                 ca.start_date,
                 COALESCE(ca.period, '') AS period
             FROM company_audit ca
-            JOIN window w ON TRUE
+            JOIN span_window w ON TRUE
             LEFT JOIN company c ON c.id = ca.company_id
             LEFT JOIN system_okr so ON so.id = ca.system_okr_id
             WHERE ca.start_date BETWEEN w.today AND w.until
