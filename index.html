@@ -613,28 +613,18 @@ function okrRiskMonthPieChart(){
 
     const now = new Date();
     const currentYM = now.getFullYear() * 100 + now.getMonth();
-    const futureMonths = monthData.filter(m => m.sortKey >= currentYM);
-    const minFuture = futureMonths.length ? Math.min(...futureMonths.map(m=>m.sortKey)) : null;
-    const maxFuture = futureMonths.length ? Math.max(...futureMonths.map(m=>m.sortKey)) : null;
-    const interpolateColor = (ratio) => {
-      // tiffany (#92DAD9) -> dark cyan (#038681)
-      const start = {r:146,g:218,b:217};
-      const end = {r:3,g:134,b:129};
-      const r = Math.round(start.r + ratio * (end.r - start.r));
-      const g = Math.round(start.g + ratio * (end.g - start.g));
-      const b = Math.round(start.b + ratio * (end.b - start.b));
-      return `rgb(${r},${g},${b})`;
-    };
     
     const pieData = monthData.map(m => {
       let color;
       if(m.sortKey < currentYM){
+        // Прошедшие месяцы - алый
         color = '#F34C3F';
-      }else if(futureMonths.length <= 1 || minFuture === maxFuture){
+      }else if(m.sortKey === currentYM){
+        // Текущий месяц - темно-бирюзовый
         color = '#038681';
       }else{
-        const ratio = (m.sortKey - minFuture) / (maxFuture - minFuture);
-        color = interpolateColor(ratio);
+        // Будущие месяцы - светло-бирюзовый
+        color = '#92DAD9';
       }
       return {
         name: m.name,
