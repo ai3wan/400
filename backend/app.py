@@ -823,6 +823,189 @@ async def okr_operational_summary() -> Dict[str, Any]:
         }
 
 
+@app.get("/api/visits/summary")
+async def visits_summary() -> Dict[str, Any]:
+    """Агрегированная сводка по выездам (таблица company_audit)."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE start_date IS NOT NULL) AS with_date,
+                COUNT(*) FILTER (WHERE start_date IS NULL) AS without_date,
+                COUNT(DISTINCT company_id) AS unique_companies,
+                COUNT(*) FILTER (WHERE start_date IS NOT NULL AND start_date >= CURRENT_DATE) AS upcoming,
+                COUNT(*) FILTER (WHERE start_date IS NOT NULL AND start_date < CURRENT_DATE) AS completed
+            FROM company_audit
+            """
+        )
+        kpi_row = cursor.fetchone() or {}
+
+        cursor.execute(
+            """
+            SELECT
+                start_date::date AS start_date,
+                COUNT(*) AS count
+            FROM company_audit
+            WHERE start_date IS NOT NULL
+            GROUP BY start_date
+            ORDER BY start_date
+            """
+        )
+        calendar_rows = cursor.fetchall()
+        calendar: List[Dict[str, Any]] = []
+        min_date = None
+        max_date = None
+        for row in calendar_rows:
+            start_date = row.get("start_date")
+            if start_date:
+                if isinstance(start_date, datetime):
+                    start_date = start_date.date()
+                calendar.append({
+                    "date": start_date.isoformat(),
+                    "count": int(row.get("count") or 0),
+                })
+                if min_date is None or start_date < min_date:
+                    min_date = start_date
+                if max_date is None or start_date > max_date:
+                    max_date = start_date
+
+        calendar_range = None
+        if min_date and max_date:
+            calendar_range = {
+                "start": min_date.isoformat(),
+                "end": max_date.isoformat(),
+            }
+
+        cursor.execute(
+            """
+            SELECT
+                date_trunc('month', start_date)::date AS month_start,
+                COUNT(*) AS count
+            FROM company_audit
+            WHERE start_date IS NOT NULL
+            GROUP BY date_trunc('month', start_date)
+            ORDER BY date_trunc('month', start_date)
+            """
+        )
+        monthly_rows = cursor.fetchall()
+        monthly_counts = []
+        for row in monthly_rows:
+            month_start = row.get("month_start")
+            if month_start:
+                if isinstance(month_start, datetime):
+                    month_start = month_start.date()
+                monthly_counts.append({
+                    "month": month_start.strftime("%Y-%m"),
+                    "count": int(row.get("count") or 0),
+                })
+
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(NULLIF(city, ''), 'Не указано') AS city,
+                COUNT(*) AS count
+            FROM company_audit
+            GROUP BY COALESCE(NULLIF(city, ''), 'Не указано')
+            ORDER BY COUNT(*) DESC, city ASC
+            LIMIT 10
+            """
+        )
+        by_city_rows = cursor.fetchall()
+        by_city = [
+            {
+                "city": row.get("city") or "Не указано",
+                "count": int(row.get("count") or 0),
+            }
+            for row in by_city_rows
+        ]
+
+        cursor.execute(
+            """
+            SELECT
+                COALESCE(so.name, 'Не указано') AS system_name,
+                COUNT(*) AS count
+            FROM company_audit ca
+            LEFT JOIN system_okr so ON so.id = ca.system_okr_id
+            GROUP BY COALESCE(so.name, 'Не указано')
+            ORDER BY COUNT(*) DESC, system_name ASC
+            LIMIT 10
+            """
+        )
+        by_system_rows = cursor.fetchall()
+        by_system = [
+            {
+                "system_name": row.get("system_name") or "Не указано",
+                "count": int(row.get("count") or 0),
+            }
+            for row in by_system_rows
+        ]
+
+        cursor.execute(
+            """
+            SELECT
+                ca.id,
+                COALESCE(c.short_name, '—') AS company_name,
+                COALESCE(so.name, '—') AS system_name,
+                COALESCE(NULLIF(ca.city, ''), '—') AS city,
+                ca.start_date,
+                COALESCE(ca.period, '') AS period
+            FROM company_audit ca
+            LEFT JOIN company c ON c.id = ca.company_id
+            LEFT JOIN system_okr so ON so.id = ca.system_okr_id
+            ORDER BY
+                CASE WHEN ca.start_date IS NULL THEN 1 ELSE 0 END,
+                ca.start_date DESC,
+                ca.id DESC
+            LIMIT 8
+            """
+        )
+        recent_rows = cursor.fetchall()
+        recent_visits = []
+        for row in recent_rows:
+            start_date = row.get("start_date")
+            if isinstance(start_date, datetime):
+                start_date = start_date.date()
+            elif start_date is not None and not hasattr(start_date, "isoformat"):
+                start_date = None
+            recent_visits.append({
+                "id": row.get("id"),
+                "company_name": row.get("company_name") or "—",
+                "system_name": row.get("system_name") or "—",
+                "city": row.get("city") or "—",
+                "start_date": start_date.isoformat() if start_date else None,
+                "period": row.get("period") or "",
+            })
+
+        cursor.close()
+        conn.close()
+        return {
+            "kpi": {
+                "total": int(kpi_row.get("total") or 0),
+                "with_date": int(kpi_row.get("with_date") or 0),
+                "without_date": int(kpi_row.get("without_date") or 0),
+                "unique_companies": int(kpi_row.get("unique_companies") or 0),
+                "upcoming": int(kpi_row.get("upcoming") or 0),
+                "completed": int(kpi_row.get("completed") or 0),
+            },
+            "calendar": calendar,
+            "calendar_range": calendar_range,
+            "monthly_counts": monthly_counts,
+            "by_city": by_city,
+            "by_system": by_system,
+            "recent_visits": recent_visits,
+        }
+    except Exception as e:
+        if conn:
+            conn.close()
+        print(f"visits_summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/okr/summary-by-phase")
 async def okr_summary_by_phase() -> Dict[str, Any]:
     """
