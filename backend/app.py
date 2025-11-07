@@ -848,12 +848,19 @@ async def visits_summary() -> Dict[str, Any]:
         cursor.execute(
             """
             SELECT
-                start_date::date AS start_date,
+                gs.day::date AS calendar_day,
                 COUNT(*) AS count
-            FROM company_audit
-            WHERE start_date IS NOT NULL
-            GROUP BY start_date
-            ORDER BY start_date
+            FROM company_audit ca
+            JOIN LATERAL (
+                SELECT generate_series(
+                    ca.start_date::date,
+                    (ca.start_date::date + GREATEST(COALESCE(CEIL(ca.duration)::int, 1), 1) - 1),
+                    INTERVAL '1 day'
+                ) AS day
+            ) AS gs ON TRUE
+            WHERE ca.start_date IS NOT NULL
+            GROUP BY gs.day
+            ORDER BY gs.day
             """
         )
         calendar_rows = cursor.fetchall()
@@ -861,18 +868,18 @@ async def visits_summary() -> Dict[str, Any]:
         min_date = None
         max_date = None
         for row in calendar_rows:
-            start_date = row.get("start_date")
-            if start_date:
-                if isinstance(start_date, datetime):
-                    start_date = start_date.date()
+            calendar_day = row.get("calendar_day")
+            if calendar_day:
+                if isinstance(calendar_day, datetime):
+                    calendar_day = calendar_day.date()
                 calendar.append({
-                    "date": start_date.isoformat(),
+                    "date": calendar_day.isoformat(),
                     "count": int(row.get("count") or 0),
                 })
-                if min_date is None or start_date < min_date:
-                    min_date = start_date
-                if max_date is None or start_date > max_date:
-                    max_date = start_date
+                if min_date is None or calendar_day < min_date:
+                    min_date = calendar_day
+                if max_date is None or calendar_day > max_date:
+                    max_date = calendar_day
 
         calendar_range = None
         if min_date and max_date:
