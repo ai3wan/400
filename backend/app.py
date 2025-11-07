@@ -1045,28 +1045,61 @@ async def okr_phase_progress() -> Dict[str, Any]:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
+        # Сначала проверим структуру вью
+        try:
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'okr_phase_status_summary'
+                ORDER BY ordinal_position
+            """)
+            cols = [r["column_name"] for r in cursor.fetchall()]
+        except:
+            cols = []
+        
+        # Определяем названия колонок
+        phase_col = "phase" if "phase" in cols else ("фаза" if "фаза" in cols else None)
+        status_col = "status" if "status" in cols else ("статус" if "статус" in cols else None)
+        count_col = None
+        for c in ["quantity", "количество", "count"]:
+            if c in cols:
+                count_col = c
+                break
+        avg_col = None
+        for c in ["avg_percentage", "средний_процент", "average_percentage"]:
+            if c in cols:
+                avg_col = c
+                break
+        
+        if not all([phase_col, count_col, avg_col]):
+            cursor.close(); conn.close()
+            return {"phases": [], "error": f"Не найдены нужные колонки. Доступные: {cols}"}
+        
         # Получаем данные из вью
-        cursor.execute("""
+        query = f"""
             SELECT 
-                phase,
-                status,
-                quantity AS count,
-                avg_percentage
+                "{phase_col}" AS phase,
+                "{count_col}" AS count,
+                "{avg_col}" AS avg_pct
             FROM okr_phase_status_summary
-            WHERE phase IN ('ТЗ', 'ОО', 'ПИ')
-            ORDER BY phase, status
-        """)
+            WHERE "{phase_col}" IN ('ТЗ', 'ОО', 'ПИ')
+            ORDER BY "{phase_col}"
+        """
+        cursor.execute(query)
         rows = cursor.fetchall()
         
         # Группируем по фазам и рассчитываем взвешенное среднее
         phase_data = {}
         for row in rows:
             phase = row.get("phase")
-            count = int(row.get("count", 0))
-            avg_pct = float(row.get("avg_percentage", 0) or 0)
+            count = int(row.get("count", 0) or 0)
+            avg_pct = float(row.get("avg_pct", 0) or 0)
             
+            if not phase:
+                continue
+                
             if phase not in phase_data:
-                phase_data[phase] = {"total_weighted": 0, "total_count": 0}
+                phase_data[phase] = {"total_weighted": 0.0, "total_count": 0}
             
             phase_data[phase]["total_weighted"] += count * avg_pct
             phase_data[phase]["total_count"] += count
@@ -1089,9 +1122,10 @@ async def okr_phase_progress() -> Dict[str, Any]:
             })
         
         cursor.close(); conn.close()
-        return {"phases": result, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+        return {"phases": result, "debug": {"rows_count": len(rows), "phase_data": phase_data}, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
     except Exception as e:
-        return {"phases": [], "error": str(e)}
+        import traceback
+        return {"phases": [], "error": str(e), "traceback": traceback.format_exc()}
 
 
 if __name__ == "__main__":
