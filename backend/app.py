@@ -1057,16 +1057,24 @@ async def okr_phase_progress() -> Dict[str, Any]:
         except:
             cols = []
         
-        # Определяем названия колонок
-        phase_col = "phase" if "phase" in cols else ("фаза" if "фаза" in cols else None)
-        status_col = "status" if "status" in cols else ("статус" if "статус" in cols else None)
+        # Определяем названия колонок (поддерживаем русские и английские)
+        phase_col = None
+        for c in ["Фаза", "фаза", "phase"]:
+            if c in cols:
+                phase_col = c
+                break
+        status_col = None
+        for c in ["Статус", "статус", "status"]:
+            if c in cols:
+                status_col = c
+                break
         count_col = None
-        for c in ["quantity", "количество", "count"]:
+        for c in ["Количество", "количество", "quantity", "count"]:
             if c in cols:
                 count_col = c
                 break
         avg_col = None
-        for c in ["avg_percentage", "средний_процент", "average_percentage"]:
+        for c in ["Средний процент", "средний процент", "Средний_процент", "средний_процент", "avg_percentage", "average_percentage"]:
             if c in cols:
                 avg_col = c
                 break
@@ -1076,6 +1084,7 @@ async def okr_phase_progress() -> Dict[str, Any]:
             return {"phases": [], "error": f"Не найдены нужные колонки. Доступные: {cols}"}
         
         # Получаем данные из вью - все строки для фаз ТЗ, ОО, ПИ
+        # Используем двойные кавычки для колонок с пробелами
         query = f"""
             SELECT 
                 "{phase_col}" AS phase,
