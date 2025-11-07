@@ -1075,7 +1075,7 @@ async def okr_phase_progress() -> Dict[str, Any]:
             cursor.close(); conn.close()
             return {"phases": [], "error": f"Не найдены нужные колонки. Доступные: {cols}"}
         
-        # Получаем данные из вью
+        # Получаем данные из вью - все строки для фаз ТЗ, ОО, ПИ
         query = f"""
             SELECT 
                 "{phase_col}" AS phase,
@@ -1089,18 +1089,35 @@ async def okr_phase_progress() -> Dict[str, Any]:
         rows = cursor.fetchall()
         
         # Группируем по фазам и рассчитываем взвешенное среднее
+        # Формула: сумма(количество × средний_процент) / сумма(количество)
         phase_data = {}
         for row in rows:
             phase = row.get("phase")
-            count = int(row.get("count", 0) or 0)
-            avg_pct = float(row.get("avg_pct", 0) or 0)
+            # Безопасное преобразование в числа
+            try:
+                count_val = row.get("count")
+                if count_val is None:
+                    continue
+                count = int(float(str(count_val)))
+            except (ValueError, TypeError):
+                continue
+                
+            try:
+                avg_pct_val = row.get("avg_pct")
+                if avg_pct_val is None:
+                    avg_pct = 0.0
+                else:
+                    avg_pct = float(str(avg_pct_val))
+            except (ValueError, TypeError):
+                avg_pct = 0.0
             
-            if not phase:
+            if not phase or count <= 0:
                 continue
                 
             if phase not in phase_data:
                 phase_data[phase] = {"total_weighted": 0.0, "total_count": 0}
             
+            # Взвешенная сумма: количество × процент
             phase_data[phase]["total_weighted"] += count * avg_pct
             phase_data[phase]["total_count"] += count
         
@@ -1122,7 +1139,16 @@ async def okr_phase_progress() -> Dict[str, Any]:
             })
         
         cursor.close(); conn.close()
-        return {"phases": result, "debug": {"rows_count": len(rows), "phase_data": phase_data}, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+        return {
+            "phases": result, 
+            "debug": {
+                "rows_count": len(rows),
+                "raw_rows": [dict(r) for r in rows[:10]],  # первые 10 строк для отладки
+                "phase_data": phase_data,
+                "columns_found": {"phase": phase_col, "count": count_col, "avg": avg_col}
+            }, 
+            "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}
+        }
     except Exception as e:
         import traceback
         return {"phases": [], "error": str(e), "traceback": traceback.format_exc()}
