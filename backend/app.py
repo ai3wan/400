@@ -1035,6 +1035,65 @@ async def okr_risk_soon() -> Dict[str, Any]:
         return {"items": [], "error": str(e)}
 
 
+@app.get("/api/okr/phase-progress")
+async def okr_phase_progress() -> Dict[str, Any]:
+    """
+    Общий процент выполнения по фазам из okr_phase_status_summary.
+    Для каждой фазы (ТЗ, ОО, ПИ) рассчитывает взвешенное среднее процента выполнения.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Получаем данные из вью
+        cursor.execute("""
+            SELECT 
+                phase,
+                status,
+                quantity AS count,
+                avg_percentage
+            FROM okr_phase_status_summary
+            WHERE phase IN ('ТЗ', 'ОО', 'ПИ')
+            ORDER BY phase, status
+        """)
+        rows = cursor.fetchall()
+        
+        # Группируем по фазам и рассчитываем взвешенное среднее
+        phase_data = {}
+        for row in rows:
+            phase = row.get("phase")
+            count = int(row.get("count", 0))
+            avg_pct = float(row.get("avg_percentage", 0) or 0)
+            
+            if phase not in phase_data:
+                phase_data[phase] = {"total_weighted": 0, "total_count": 0}
+            
+            phase_data[phase]["total_weighted"] += count * avg_pct
+            phase_data[phase]["total_count"] += count
+        
+        # Рассчитываем процент выполнения для каждой фазы
+        result = []
+        for phase in ["ТЗ", "ОО", "ПИ"]:
+            if phase in phase_data:
+                data = phase_data[phase]
+                if data["total_count"] > 0:
+                    progress = round(data["total_weighted"] / data["total_count"], 1)
+                else:
+                    progress = 0.0
+            else:
+                progress = 0.0
+            
+            result.append({
+                "phase": phase,
+                "progress": progress
+            })
+        
+        cursor.close(); conn.close()
+        return {"phases": result, "meta": {"generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")}}
+    except Exception as e:
+        return {"phases": [], "error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -93,6 +93,22 @@
       </div>
     </div>
 
+    <!-- Phase Progress Cards -->
+    <div class="kpi-grid" style="margin-top:20px;">
+      <div class="card kpi-card">
+        <div class="kpi-value" id="phase-progress-tz">0%</div>
+        <div class="kpi-label">Технические задания</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="phase-progress-oo">0%</div>
+        <div class="kpi-label">Опытный образец</div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-value" id="phase-progress-pi">0%</div>
+        <div class="kpi-label">Приемочные испытания</div>
+      </div>
+    </div>
+
     <div class="charts-grid">
       <div class="card chart-card">
         <div class="chart-title">Воронка выполнения по фазам</div>
@@ -194,6 +210,18 @@ function setKPI(){
   document.getElementById('okr-kpi-oo').innerText = (k.phase_oo || 0).toLocaleString('ru-RU');
   document.getElementById('okr-kpi-pi').innerText = (k.phase_pi || 0).toLocaleString('ru-RU');
   document.getElementById('okr-kpi-ready').innerText = (k.total_ready || 0).toLocaleString('ru-RU');
+}
+async function loadPhaseProgress(){
+  try{
+    const res = await fetch('/api/okr/phase-progress');
+    if(!res.ok) return;
+    const data = await res.json();
+    const phases = data.phases || [];
+    const phaseMap = new Map(phases.map(p => [p.phase, p.progress]));
+    document.getElementById('phase-progress-tz').innerText = (phaseMap.get('ТЗ') || 0).toFixed(1) + '%';
+    document.getElementById('phase-progress-oo').innerText = (phaseMap.get('ОО') || 0).toFixed(1) + '%';
+    document.getElementById('phase-progress-pi').innerText = (phaseMap.get('ПИ') || 0).toFixed(1) + '%';
+  }catch(e){ console.error('loadPhaseProgress error:', e); }
 }
 async function okrFunnelChart(){
   const el=echarts.init(document.getElementById('okrFunnel'));
@@ -538,7 +566,7 @@ function okrRiskCompanyTreemapChart(){
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
 if(riskToggleBtn){ riskToggleBtn.onclick = async ()=>{ RISK_EXPANDED = !RISK_EXPANDED; await loadRiskSoon(); }; }
-async function init(){try{await loadData();setKPI();okrFunnelChart();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
+async function init(){try{await loadData();setKPI();await loadPhaseProgress();okrFunnelChart();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
