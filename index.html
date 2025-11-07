@@ -465,7 +465,7 @@ function visitsCalendarChart(){
     return {
       value: [item.date, count],
       hasMoscow,
-      itemStyle: {
+    itemStyle: { 
         color: hasMoscow ? '#F34C3F' : (count > 0 ? '#038681' : 'rgba(3,134,129,0.18)')
       }
     };
@@ -478,7 +478,7 @@ function visitsCalendarChart(){
     if(startDate && endDate){
       const alignedStart = getMonday(startDate);
       const alignedEnd = getWeekEnd(endDate);
-      rangeValue = [toISODateString(alignedStart), toISODateString(alignedEnd)];
+      rangeValue = { start: toISODateString(alignedStart), end: toISODateString(alignedEnd) };
       for(let current = new Date(alignedStart.getTime()); current <= alignedEnd; current.setUTCDate(current.getUTCDate() + 7)){
         weekNumberData.push({
           value: [toISODateString(current), 0],
@@ -493,7 +493,7 @@ function visitsCalendarChart(){
       top: 60,
       left: 70,
       right: 20,
-      bottom: 80,
+      bottom: 90,
       cellSize: ['auto', 26],
       range: rangeValue,
       firstDay: 1,
@@ -504,7 +504,7 @@ function visitsCalendarChart(){
       },
       yearLabel: { show: false },
       monthLabel: {
-        margin: 28,
+        margin: 34,
         position: 'start',
         align: 'left',
         color: 'var(--c-text)',
@@ -519,7 +519,7 @@ function visitsCalendarChart(){
         fontFamily: 'Moscow Sans, sans-serif'
       }
     },
-    tooltip: {
+    tooltip: { 
       position: 'top',
       formatter: (params) => {
         const item = params?.data || {};
