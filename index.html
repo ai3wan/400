@@ -445,117 +445,157 @@ function visitsCalendarChart(){
   const chart = getChartInstance('visitsCalendar');
   if(!chart) return;
   const rawEntries = VISITS_DATA?.calendar || [];
-  const maxValue = rawEntries.reduce((acc, item) => Math.max(acc, Number(item.count) || 0), 0);
   const range = VISITS_DATA?.calendar_range;
   const rangeValue = (range && range.start && range.end) ? [range.start, range.end] : `${new Date().getFullYear()}`;
-  const data = rawEntries.map(item => {
-    const count = Number(item.count) || 0;
-    const hasMoscow = !!item.has_moscow;
-    return {
-      value: [item.date, count],
-      hasMoscow,
-      itemStyle: hasMoscow ? { color: '#F34C3F' } : undefined
-    };
-  });
 
-  let weekNumberData = [];
+  const data = rawEntries.map(item => ({
+    date: item.date,
+    count: Number(item.count) || 0,
+    hasMoscow: !!item.has_moscow
+  }));
+
+  const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+  const weekLabels = [];
   if(range && range.start && range.end){
     const startDate = parseISODate(range.start);
     const endDate = parseISODate(range.end);
     if(startDate && endDate){
       const firstMonday = getMonday(startDate);
       for(let current = new Date(firstMonday.getTime()); current <= endDate; current.setUTCDate(current.getUTCDate() + 7)){
-        const isoWeek = getISOWeekNumber(current);
-        weekNumberData.push({
-          value: [toISODateString(current), 0],
-          week: isoWeek
+        weekLabels.push({
+          date: toISODateString(current),
+          week: getISOWeekNumber(current)
         });
       }
     }
   }
 
+  const calendarOpt = {
+    top: 60,
+    left: 70,
+    right: 20,
+    bottom: 70,
+    cellSize: ['auto', 26],
+    range: rangeValue,
+    firstDay: 1,
+    itemStyle: {
+      borderWidth: 1,
+      borderColor: 'rgba(19,84,87,0.1)',
+      borderRadius: 4
+    },
+    yearLabel: { show: false },
+    monthLabel: {
+      formatter: (value) => {
+        const parts = String(value).split('-');
+        if(parts.length >= 2){
+          const monthIndex = Number(parts[1]) - 1;
+          if(monthIndex >= 0 && monthIndex < monthNames.length){
+            return monthNames[monthIndex];
+          }
+        }
+        return value;
+      },
+      color: 'var(--c-text)',
+      fontFamily: 'Moscow Sans, sans-serif'
+    },
+    dayLabel: {
+      position: 'top',
+      nameMap: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+      margin: 16,
+      color: 'rgba(19,84,87,0.7)',
+      fontFamily: 'Moscow Sans, sans-serif'
+    }
+  };
+
   chart.setOption({
-    tooltip: { 
+    calendar: calendarOpt,
+    tooltip: {
       position: 'top',
       formatter: (params) => {
-        const dataItem = params?.data || {};
-        const value = Array.isArray(dataItem.value) ? Number(dataItem.value[1]) || 0 : 0;
-        const dateValue = Array.isArray(dataItem.value) ? dataItem.value[0] : null;
-        const label = dataItem.hasMoscow ? 'Москва' : 'Командировка';
-        return `${formatDate(dateValue)}: ${formatNumber(value)}<br/>${label}`;
-      }
-    },
-    visualMap: {
-      show: false,
-      min: 0,
-      max: maxValue > 0 ? maxValue : 1,
-      calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      top: 0,
-      inRange: {
-        color: ['#92DAD9','#038681']
-      },
-      controller: {
-        inRange: {
-          color: ['#92DAD9','#038681']
-        }
-      }
-    },
-    calendar: {
-      top: 60,
-      left: 70,
-      right: 20,
-      bottom: 50,
-      cellSize: ['auto', 26],
-      range: rangeValue,
-      firstDay: 1,
-      itemStyle: {
-        borderWidth: 1,
-        borderColor: 'rgba(19,84,87,0.1)',
-        borderRadius: 4
-      },
-      yearLabel: {
-        show: false
-      },
-      monthLabel: {
-        color: 'var(--c-text)',
-        fontFamily: 'Moscow Sans, sans-serif'
-      },
-      dayLabel: {
-        position: 'top',
-        nameMap: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-        margin: 16,
-        color: 'rgba(19,84,87,0.7)',
-        fontFamily: 'Moscow Sans, sans-serif'
+        const item = params?.data || {};
+        const label = item.hasMoscow ? 'Москва' : 'Командировка';
+        return `${formatDate(item.date)}: ${formatNumber(item.count)}<br/>${label}`;
       }
     },
     series: [
-      ...(weekNumberData.length ? [{
-        name: 'WeekNumbers',
-        type: 'scatter',
-        coordinateSystem: 'calendar',
-        data: weekNumberData,
-        symbolSize: 1,
-        label: {
-          show: true,
-          color: 'rgba(19,84,87,0.7)',
-          fontFamily: 'Moscow Sans, sans-serif',
-          fontSize: 11,
-          formatter: (params) => `${params.data.week}`,
-          position: 'bottom',
-          offset: [0, 28],
-          align: 'center'
-        },
-        itemStyle: { color: 'transparent' },
-        silent: true
-      }] : []),
       {
-      type: 'heatmap',
-      coordinateSystem: 'calendar',
-      data,
-      label: { show: false }
-    }]
+        type: 'custom',
+        coordinateSystem: 'calendar',
+        renderItem: (params, api) => {
+          const idx = params.dataIndex;
+          const item = data[idx];
+          if(!item) return;
+          const dateCoord = api.coord([item.date, 0]);
+          const cellSize = api.size([1, 1]);
+          const border = 2;
+          return {
+            type: 'rect',
+            shape: {
+              x: dateCoord[0] + border / 2,
+              y: dateCoord[1] + border / 2,
+              width: cellSize[0] - border,
+              height: cellSize[1] - border
+            },
+            style: {
+              fill: item.hasMoscow ? '#F34C3F' : '#038681'
+            }
+          };
+        },
+        data
+      },
+      {
+        type: 'custom',
+        coordinateSystem: 'calendar',
+        renderItem: (params, api) => {
+          const item = data[params.dataIndex];
+          if(!item) return;
+          const value = item.count;
+          if(!value) return;
+          const dateCoord = api.coord([item.date, 0]);
+          const cellSize = api.size([1, 1]);
+          return {
+            type: 'text',
+            style: {
+              text: `${value}`,
+              x: dateCoord[0] + cellSize[0] / 2,
+              y: dateCoord[1] + cellSize[1] / 2,
+              textAlign: 'center',
+              textVerticalAlign: 'middle',
+              fill: '#ffffff',
+              fontSize: 11,
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          };
+        },
+        data
+      },
+      {
+        type: 'custom',
+        coordinateSystem: 'calendar',
+        renderItem: (params, api) => {
+          const idx = params.dataIndex;
+          const item = weekLabels[idx];
+          if(!item) return;
+          const dateCoord = api.coord([item.date, 0]);
+          const cellSize = api.size([1, 1]);
+          return {
+            type: 'text',
+            style: {
+              text: `${item.week}`,
+              x: dateCoord[0] + cellSize[0] / 2,
+              y: dateCoord[1] + cellSize[1] + 24,
+              textAlign: 'center',
+              textVerticalAlign: 'top',
+              fill: 'rgba(19,84,87,0.7)',
+              fontSize: 12,
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          };
+        },
+        data: weekLabels
+      }
+    ]
   }, true);
 }
 
