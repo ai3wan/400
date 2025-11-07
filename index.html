@@ -331,17 +331,76 @@ async function okrPhasePieChart(){
   // Гарантируем нужный порядок фаз
   const order={"ТЗ":1,"ОО":2,"ПИ":3,"Выполнено":4};
   const full={"ТЗ":"Техническое задание","ОО":"Опытный образец","ПИ":"Приемочные испытания","Выполнено":"Выполнено"};
-  const data=raw.sort((a,b)=> (order[a.phase||'']||99)-(order[b.phase||'']||99))
-               .map(x=>({name: (x.phase||'—'), value:x.count||0}));
+  const sorted=raw.sort((a,b)=> (order[a.phase||'']||99)-(order[b.phase||'']||99));
+  const categories=sorted.map(x=>full[x.phase||'']||(x.phase||'—'));
+  const values=sorted.map(x=>x.count||0);
+  const phaseNames=sorted.map(x=>x.phase||'—');
+  
   el.setOption({
-    tooltip:{trigger:'item',formatter:'{b}: {c} ({d}%)'},
-    legend:{bottom:0, formatter: function(name){ return full[name] || name; }},
-    series:[{type:'pie',radius:['40%','70%'],itemStyle:{borderRadius:6,borderColor:'#fff',borderWidth:1},data}]
+    tooltip:{
+      trigger:'axis',
+      axisPointer:{type:'shadow'},
+      formatter:(params)=>{
+        const p=params[0];
+        const idx=p.dataIndex;
+        return `${p.name}<br/>Количество: ${p.value}`;
+      }
+    },
+    grid:{
+      left:'3%',
+      right:'4%',
+      bottom:'3%',
+      containLabel:true
+    },
+    xAxis:{
+      type:'category',
+      data:categories,
+      axisLabel:{
+        fontFamily:'Moscow Sans, sans-serif'
+      }
+    },
+    yAxis:{
+      type:'value',
+      name:'Количество',
+      nameTextStyle:{
+        fontFamily:'Moscow Sans, sans-serif'
+      }
+    },
+    series:[{
+      name:'Количество',
+      type:'bar',
+      data:values.map((v,idx)=>({
+        value:v,
+        phase:phaseNames[idx]
+      })),
+      itemStyle:{
+        borderRadius:[6,6,0,0],
+        color:(params)=>{
+          const phase=params.data.phase;
+          const colors={"ТЗ":"#2563EB","ОО":"#16BDCA","ПИ":"#10b981","Выполнено":"#8b5cf6"};
+          return colors[phase]||'#6b7280';
+        }
+      },
+      label:{
+        show:true,
+        position:'top',
+        formatter:'{c}',
+        fontFamily:'Moscow Sans, sans-serif'
+      }
+    }]
   });
   // Обработчик клика для drill-down
   el.on('click', async (params) => {
-    const phase = params.name;
-    await loadPhaseDetails(phase, full[phase] || phase);
+    if(params.data && params.data.phase){
+      const phase=params.data.phase;
+      await loadPhaseDetails(phase, full[phase] || phase);
+    }else if(params.name){
+      // Fallback: пытаемся найти phase по полному названию
+      const phaseKey=Object.keys(full).find(k=>full[k]===params.name);
+      if(phaseKey){
+        await loadPhaseDetails(phaseKey, params.name);
+      }
+    }
   });
   window.addEventListener('resize',()=>el.resize());
 }
