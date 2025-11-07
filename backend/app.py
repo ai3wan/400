@@ -849,7 +849,8 @@ async def visits_summary() -> Dict[str, Any]:
             """
             SELECT
                 gs.day::date AS calendar_day,
-                COUNT(*) AS count
+                COUNT(*) AS count,
+                BOOL_OR(LOWER(COALESCE(ca.city, '')) = 'москва') AS has_moscow
             FROM company_audit ca
             JOIN LATERAL (
                 SELECT generate_series(
@@ -875,6 +876,7 @@ async def visits_summary() -> Dict[str, Any]:
                 calendar.append({
                     "date": calendar_day.isoformat(),
                     "count": int(row.get("count") or 0),
+                    "has_moscow": bool(row.get("has_moscow")),
                 })
                 if min_date is None or calendar_day < min_date:
                     min_date = calendar_day
