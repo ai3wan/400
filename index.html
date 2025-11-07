@@ -371,6 +371,44 @@ function formatMonthLabel(monthStr){
   return monthFormatter.format(date);
 }
 
+function parseISODate(dateStr){
+  if(!dateStr) return null;
+  const parts = String(dateStr).split('-');
+  if(parts.length < 3) return null;
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if(!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function toISODateString(date){
+  if(!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getMonday(date){
+  const d = new Date(date.getTime());
+  const day = d.getUTCDay() || 7;
+  if(day !== 1){
+    d.setUTCDate(d.getUTCDate() + 1 - day);
+  }
+  return d;
+}
+
+function getISOWeekNumber(date){
+  const target = new Date(date.getTime());
+  target.setUTCHours(0,0,0,0);
+  // Thursday in current week decides the year.
+  target.setUTCDate(target.getUTCDate() + 3 - ((target.getUTCDay() + 6) % 7));
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(),0,4));
+  const diff = target - firstThursday;
+  return 1 + Math.round(diff / 604800000);
+}
+
 function getChartInstance(domId){
   const dom = document.getElementById(domId);
   if(!dom) return null;
@@ -420,6 +458,34 @@ function visitsCalendarChart(){
     };
   });
 
+  let weekNumberData = [];
+  if(range && range.start && range.end){
+    const startDate = parseISODate(range.start);
+    const endDate = parseISODate(range.end);
+    if(startDate && endDate){
+      const firstMonday = getMonday(startDate);
+      for(let current = new Date(firstMonday.getTime()); current <= endDate; current.setUTCDate(current.getUTCDate() + 7)){
+        const isoWeek = getISOWeekNumber(current);
+        weekNumberData.push({
+          value: [toISODateString(current), 0],
+          week: isoWeek,
+          label: {
+            show: true,
+            position: 'left',
+            formatter: (params) => `Нед ${params.data.week}`,
+            color: 'rgba(19,84,87,0.7)',
+            fontFamily: 'Moscow Sans, sans-serif',
+            fontSize: 11,
+            offset: [-26, 0]
+          },
+          symbolSize: 1,
+          itemStyle: { color: 'transparent' },
+          silent: true,
+        });
+      }
+    }
+  }
+
   chart.setOption({
     tooltip: {
       position: 'top',
@@ -449,10 +515,10 @@ function visitsCalendarChart(){
       }
     },
     calendar: {
-      top: 70,
-      left: 40,
+      top: 60,
+      left: 70,
       right: 20,
-      cellSize: ['auto', 24],
+      cellSize: ['auto', 26],
       range: rangeValue,
       itemStyle: {
         borderWidth: 1,
@@ -460,8 +526,7 @@ function visitsCalendarChart(){
         borderRadius: 4
       },
       yearLabel: {
-        color: 'var(--c-text)',
-        fontFamily: 'Moscow Sans, sans-serif'
+        show: false
       },
       monthLabel: {
         color: 'var(--c-text)',
@@ -469,13 +534,33 @@ function visitsCalendarChart(){
       },
       dayLabel: {
         firstDay: 1,
+        position: 'start',
         nameMap: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-        margin: 14,
+        margin: 18,
         color: 'rgba(19,84,87,0.7)',
         fontFamily: 'Moscow Sans, sans-serif'
       }
     },
-    series: [{
+    series: [
+      ...(weekNumberData.length ? [{
+        name: 'WeekNumbers',
+        type: 'scatter',
+        coordinateSystem: 'calendar',
+        data: weekNumberData,
+        symbolSize: 1,
+        label: {
+          show: true,
+          color: 'rgba(19,84,87,0.7)',
+          fontFamily: 'Moscow Sans, sans-serif',
+          fontSize: 11,
+          formatter: (params) => `Нед ${params.data.week}`,
+          offset: [-24, 0],
+          align: 'right'
+        },
+        itemStyle: { color: 'transparent' },
+        silent: true
+      }] : []),
+      {
       type: 'heatmap',
       coordinateSystem: 'calendar',
       data,
