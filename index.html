@@ -111,10 +111,6 @@
 
     <div class="charts-grid">
       <div class="card chart-card">
-        <div class="chart-title">Воронка выполнения по фазам</div>
-        <div id="okrFunnel" class="chart-container"></div>
-      </div>
-      <div class="card chart-card">
         <div class="chart-title">Текущий статус по ОКР (ТЗ / ОО / ПИ / Выполнено)</div>
         <div id="okrPhasePie" class="chart-container"></div>
       </div>
@@ -326,35 +322,6 @@ async function loadPhaseProgress(){
       window.addEventListener('resize', () => el.resize());
     });
   }catch(e){ console.error('loadPhaseProgress error:', e); }
-}
-async function okrFunnelChart(){
-  const el=echarts.init(document.getElementById('okrFunnel'));
-  // Берём из нового API, чтобы учитывать current_phase + current_progress и порядок
-  const res = await fetch('/api/okr/funnel');
-  const payload = res.ok ? await res.json() : { items: [] };
-  const rows = payload.items || [];
-  const full={"ТЗ":"Техническое задание","ОО":"Опытный образец","ПИ":"Приемочные испытания"};
-  const phaseColor={"ТЗ":"#2563EB","ОО":"#16BDCA","ПИ":"#10b981"};
-  const data = rows.map(r=>({
-    name: `${r.phase || '—'} — ${Number(r.progress||0)}%`,
-    value: r.count || 0,
-    rawPhase: r.phase || '—',
-    progress: Number(r.progress||0),
-    fullPhase: full[r.phase||''] || (r.phase||'—'),
-    itemStyle: { color: phaseColor[r.phase||''] || '#6b7280' }
-  }));
-  el.setOption({
-    tooltip:{ trigger:'item', formatter:(p)=>`${p.data.fullPhase} [${p.data.progress}%] - ${p.data.value}` },
-    series:[{
-      type:'funnel',
-      sort:'none', // сохраняем порядок, как пришёл (ТЗ→ОО→ПИ и прогресс по возрастанию)
-      gap:4,
-      label:{ show:true, formatter:(p)=>`${p.data.rawPhase} [${p.data.progress}%] - ${p.data.value}` },
-      itemStyle:{ borderRadius:6 },
-      data
-    }]
-  });
-  window.addEventListener('resize',()=>el.resize());
 }
 async function okrPhasePieChart(){
   const el=echarts.init(document.getElementById('okrPhasePie'));
@@ -670,7 +637,7 @@ function okrRiskCompanyTreemapChart(){
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
 if(riskToggleBtn){ riskToggleBtn.onclick = async ()=>{ RISK_EXPANDED = !RISK_EXPANDED; await loadRiskSoon(); }; }
-async function init(){try{await loadData();setKPI();await loadPhaseProgress();okrFunnelChart();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
+async function init(){try{await loadData();setKPI();await loadPhaseProgress();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
