@@ -1083,25 +1083,29 @@ async def okr_phase_progress() -> Dict[str, Any]:
             cursor.close(); conn.close()
             return {"phases": [], "error": f"Не найдены нужные колонки. Доступные: {cols}"}
         
-        # Получаем данные из вью - все строки для фаз ТЗ, ОО, ПИ
+        # Получаем данные из вью - все строки для фаз ТЗ, ОО, ПИ с разбивкой по статусам
         # Используем двойные кавычки для колонок с пробелами
         query = f"""
             SELECT 
                 "{phase_col}" AS phase,
+                "{status_col}" AS status,
                 "{count_col}" AS count,
                 "{avg_col}" AS avg_pct
             FROM okr_phase_status_summary
             WHERE "{phase_col}" IN ('ТЗ', 'ОО', 'ПИ')
-            ORDER BY "{phase_col}"
+            ORDER BY "{phase_col}", "{status_col}"
         """
         cursor.execute(query)
         rows = cursor.fetchall()
         
-        # Группируем по фазам и рассчитываем взвешенное среднее
+        # Группируем по фазам и статусам, рассчитываем взвешенное среднее
         # Формула: сумма(количество × средний_процент) / сумма(количество)
         phase_data = {}
+        phase_status_data = {}  # для детальной разбивки по статусам
+        
         for row in rows:
             phase = row.get("phase")
+            status = row.get("status")
             # Безопасное преобразование в числа
             try:
                 count_val = row.get("count")
@@ -1122,17 +1126,26 @@ async def okr_phase_progress() -> Dict[str, Any]:
             
             if not phase or count <= 0:
                 continue
-                
+            
+            # Для расчета общего процента по фазе
             if phase not in phase_data:
                 phase_data[phase] = {"total_weighted": 0.0, "total_count": 0}
-            
-            # Взвешенная сумма: количество × процент
             phase_data[phase]["total_weighted"] += count * avg_pct
             phase_data[phase]["total_count"] += count
+            
+            # Для разбивки по статусам
+            if phase not in phase_status_data:
+                phase_status_data[phase] = []
+            phase_status_data[phase].append({
+                "status": status,
+                "count": count,
+                "avg_pct": avg_pct
+            })
         
-        # Рассчитываем процент выполнения для каждой фазы
+        # Формируем результат с процентами и разбивкой по статусам
         result = []
         for phase in ["ТЗ", "ОО", "ПИ"]:
+            # Рассчитываем общий процент
             if phase in phase_data:
                 data = phase_data[phase]
                 if data["total_count"] > 0:
@@ -1142,9 +1155,20 @@ async def okr_phase_progress() -> Dict[str, Any]:
             else:
                 progress = 0.0
             
+            # Получаем разбивку по статусам
+            statuses = phase_status_data.get(phase, [])
+            status_breakdown = []
+            for s in statuses:
+                status_breakdown.append({
+                    "status": s["status"],
+                    "count": s["count"],
+                    "avg_pct": s["avg_pct"]
+                })
+            
             result.append({
                 "phase": phase,
-                "progress": progress
+                "progress": progress,
+                "statuses": status_breakdown
             })
         
         cursor.close(); conn.close()

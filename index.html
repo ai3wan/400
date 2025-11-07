@@ -93,19 +93,19 @@
       </div>
     </div>
 
-    <!-- Phase Progress Cards -->
-    <div class="kpi-grid" style="margin-top:20px;">
-      <div class="card kpi-card">
-        <div class="kpi-value" id="phase-progress-tz">0%</div>
-        <div class="kpi-label">Технические задания</div>
+    <!-- Phase Progress Pie Charts -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px;">
+      <div class="card">
+        <div class="chart-title">Технические задания</div>
+        <div id="phase-pie-tz" class="chart-container"></div>
       </div>
-      <div class="card kpi-card">
-        <div class="kpi-value" id="phase-progress-oo">0%</div>
-        <div class="kpi-label">Опытный образец</div>
+      <div class="card">
+        <div class="chart-title">Опытный образец</div>
+        <div id="phase-pie-oo" class="chart-container"></div>
       </div>
-      <div class="card kpi-card">
-        <div class="kpi-value" id="phase-progress-pi">0%</div>
-        <div class="kpi-label">Приемочные испытания</div>
+      <div class="card">
+        <div class="chart-title">Приемочные испытания</div>
+        <div id="phase-pie-pi" class="chart-container"></div>
       </div>
     </div>
 
@@ -217,10 +217,109 @@ async function loadPhaseProgress(){
     if(!res.ok) return;
     const data = await res.json();
     const phases = data.phases || [];
-    const phaseMap = new Map(phases.map(p => [p.phase, p.progress]));
-    document.getElementById('phase-progress-tz').innerText = (phaseMap.get('ТЗ') || 0).toFixed(1) + '%';
-    document.getElementById('phase-progress-oo').innerText = (phaseMap.get('ОО') || 0).toFixed(1) + '%';
-    document.getElementById('phase-progress-pi').innerText = (phaseMap.get('ПИ') || 0).toFixed(1) + '%';
+    
+    // Отрисовываем пайчарты для каждой фазы
+    phases.forEach(phaseData => {
+      const phase = phaseData.phase;
+      const progress = phaseData.progress || 0;
+      const statuses = phaseData.statuses || [];
+      
+      let chartId = '';
+      if(phase === 'ТЗ') chartId = 'phase-pie-tz';
+      else if(phase === 'ОО') chartId = 'phase-pie-oo';
+      else if(phase === 'ПИ') chartId = 'phase-pie-pi';
+      else return;
+      
+      const elDom = document.getElementById(chartId);
+      if(!elDom) return;
+      
+      const el = echarts.init(elDom);
+      
+      // Формируем данные для пайчарта по статусам
+      const statusMap = {
+        'не начато': { name: 'Не начато', color: '#94a3b8' },
+        'в работе': { name: 'В работе', color: '#3b82f6' },
+        'выполнено': { name: 'Выполнено', color: '#10b981' }
+      };
+      
+      const pieData = [];
+      statuses.forEach(s => {
+        const statusName = (s.status || '').trim();
+        const statusKey = statusName.toLowerCase();
+        const statusInfo = statusMap[statusKey] || { name: statusName, color: '#6b7280' };
+        pieData.push({
+          name: statusInfo.name,
+          value: s.count || 0,
+          itemStyle: { color: statusInfo.color }
+        });
+      });
+      
+      // Если нет данных, показываем пустой пайчарт
+      if(pieData.length === 0){
+        el.setOption({
+          title: {
+            text: `${progress.toFixed(1)}%`,
+            left: 'center',
+            top: 'center',
+            textStyle: {
+              fontSize: 32,
+              fontWeight: 'bold',
+              fontFamily: 'Moscow Sans, sans-serif'
+            }
+          },
+          series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            data: [{ value: 0, name: 'Нет данных' }],
+            itemStyle: { color: '#e5e7eb' }
+          }]
+        }, true);
+        return;
+      }
+      
+      el.setOption({
+        tooltip: {
+          trigger: 'item',
+          formatter: (params) => {
+            return `${params.name}<br/>Количество: ${params.value}`;
+          }
+        },
+        graphic: [{
+          type: 'text',
+          left: 'center',
+          top: 'center',
+          style: {
+            text: `${progress.toFixed(1)}%`,
+            fontSize: 32,
+            fontWeight: 'bold',
+            fontFamily: 'Moscow Sans, sans-serif',
+            fill: '#1f2937'
+          }
+        }],
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['50%', '50%'],
+          itemStyle: {
+            borderRadius: 6,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: true,
+            formatter: '{b}\n{c}',
+            fontSize: 11,
+            fontFamily: 'Moscow Sans, sans-serif'
+          },
+          labelLine: {
+            show: true
+          },
+          data: pieData
+        }]
+      }, true);
+      
+      window.addEventListener('resize', () => el.resize());
+    });
   }catch(e){ console.error('loadPhaseProgress error:', e); }
 }
 async function okrFunnelChart(){
