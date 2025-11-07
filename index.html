@@ -270,15 +270,15 @@
         </div>
 
         <div class="card" style="margin-top:24px;">
-          <div class="chart-title">Последние выезды</div>
+          <div class="chart-title">Ближайшие выезды (текущая и 2 следующие недели)</div>
           <table>
             <thead>
               <tr>
-                <th>Дата</th>
+                <th>Комментарий</th>
                 <th>Компания</th>
                 <th>Система</th>
                 <th>Город</th>
-                <th>Комментарий</th>
+                <th>Дата</th>
               </tr>
             </thead>
             <tbody id="visitsRecentBody">
@@ -487,7 +487,7 @@ function visitsCalendarChart(){
   }
 
   chart.setOption({
-    tooltip: {
+    tooltip: { 
       position: 'top',
       formatter: (params) => {
         const dataItem = params?.data || {};
@@ -603,7 +603,7 @@ function visitsMonthlyChart(){
       name: 'Выезды',
       type: 'bar',
       data: values,
-      itemStyle: {
+        itemStyle: {
         color: '#038681',
         borderRadius: [6,6,0,0]
       },
@@ -701,13 +701,13 @@ function renderVisitsRecent(){
     const company = escapeHTML(item.company_name || '—');
     const system = escapeHTML(item.system_name || '—');
     const city = escapeHTML(item.city || '—');
-    const period = escapeHTML(item.period || '—');
+    const comment = escapeHTML(item.comment || item.period || '—');
     return `<tr>
-      <td>${dateLabel}</td>
+      <td>${comment}</td>
       <td>${company}</td>
       <td>${system}</td>
       <td>${city}</td>
-      <td>${period}</td>
+      <td>${dateLabel}</td>
     </tr>`;
   }).join('');
   tbody.innerHTML = rowsHtml;
