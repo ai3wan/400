@@ -253,14 +253,16 @@ async function loadPhaseProgress(){
       const statusMap = {
         'не начато': { name: 'Не начато', color: '#F3DCE7' },
         'в работе': { name: 'В работе', color: '#038681' },
-        'выполнено': { name: 'Выполнено', color: '#92DAD9' }
+        'выполнено': { name: 'Выполнено', color: '#92DAD9' },
+        'не выполнено': { name: 'Не выполнено', color: '#F34C3F' }
       };
       
       const pieData = [];
       statuses.forEach(s => {
         const statusName = (s.status || '').trim();
         const statusKey = statusName.toLowerCase();
-        const statusInfo = statusMap[statusKey] || { name: statusName, color: '#6b7280' };
+        const statusInfo = statusMap[statusKey] ||
+          (statusKey.includes('не выполн') ? { name: statusName || 'Не выполнено', color: '#F34C3F' } : { name: statusName, color: '#6b7280' });
         pieData.push({
           name: statusInfo.name,
           value: s.count || 0,
