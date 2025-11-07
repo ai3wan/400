@@ -13,35 +13,53 @@
   @font-face{font-family:'Moscow Sans';src:url('fonts_MoscowSans/MoscowSans-Medium.otf') format('opentype');font-weight:500;font-style:normal;font-display:swap}
   @font-face{font-family:'Moscow Sans';src:url('fonts_MoscowSans/MoscowSans-Bold.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
   @font-face{font-family:'Moscow Sans';src:url('fonts_MoscowSans/MoscowSans-Extrabold.otf') format('opentype');font-weight:800;font-style:normal;font-display:swap}
-  :root{--c-teal:#16BDCA;--c-blue:#2563EB;--c-red:#EF4444;--c-bg:#f8fafc;--c-card:#fff;--c-text:#0f172a}
-  [data-theme="dark"]{--c-bg:#0b1218;--c-card:#111827;--c-text:#E5E7EB}
+  :root{
+    --c-white:#FFFFFF;
+    --c-misty-rose:#F3DCE7;
+    --c-tiffany-blue:#92DAD9;
+    --c-dark-cyan:#038681;
+    --c-midnight-green:#135457;
+    --c-space-cadet:#2A3043;
+    --c-vermilion:#F34C3F;
+    --c-bg:var(--c-white);
+    --c-card:var(--c-white);
+    --c-text:var(--c-space-cadet);
+    --c-primary:var(--c-dark-cyan);
+    --c-accent:var(--c-vermilion);
+    --c-secondary:var(--c-tiffany-blue);
+  }
+  [data-theme="dark"]{
+    --c-bg:#0b1218;
+    --c-card:#111827;
+    --c-text:#E5E7EB;
+  }
   *{box-sizing:border-box}
   body{margin:0;font-family:'Moscow Sans',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--c-bg);color:var(--c-text)}
   .container{max-width:1400px;margin:0 auto;padding:20px}
   .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
-  .title{font-size:32px;font-weight:700;background:linear-gradient(90deg,var(--c-teal),var(--c-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .title{font-size:32px;font-weight:700;color:var(--c-primary)}
   .controls{display:flex;gap:12px;align-items:center}
-  .card{background:var(--c-card);border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:16px}
+  .card{background:var(--c-card);border-radius:16px;box-shadow:0 2px 8px rgba(42,48,67,.08);padding:16px;border:1px solid rgba(42,48,67,.06)}
   .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
-  .kpi-card{text-align:center;padding:20px}
-  .kpi-value{font-size:28px;font-weight:700;color:var(--c-teal);margin-bottom:4px}
+  .kpi-card{text-align:center;padding:20px;background:var(--c-card);border:1px solid rgba(3,134,129,.1)}
+  .kpi-value{font-size:28px;font-weight:700;color:var(--c-primary);margin-bottom:4px}
   .kpi-label{font-size:14px;color:var(--c-text);opacity:0.7}
   .delta{font-size:12px;margin-top:4px}
-  .delta.up{color:var(--c-teal)} .delta.down{color:var(--c-red)}
+  .delta.up{color:var(--c-primary)} .delta.down{color:var(--c-accent)}
   .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px}
   .charts-grid.components{margin-top:28px}
   .chart-card{min-height:400px}
   .chart-title{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--c-text)}
   .chart-container{width:100%;height:350px}
-  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px; background:rgba(37,99,235,.12); color:var(--c-blue)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;background:rgba(3,134,129,.12);color:var(--c-primary)}
   .legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
-  select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(0,0,0,.08);background:var(--c-card);color:var(--c-text)}
-  .accent{background: linear-gradient(90deg, var(--c-teal), var(--c-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;}
-  .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px; border:1px solid rgba(0,0,0,.1)}
+  select, button{padding:8px 10px;border-radius:10px;border:1px solid rgba(42,48,67,.12);background:var(--c-card);color:var(--c-text)}
+  .accent{color:var(--c-primary)}
+  .pill{padding:4px 8px;border-radius:999px;font-size:12px;margin-left:8px;border:1px solid rgba(42,48,67,.1)}
   table{width:100%;border-collapse:collapse}
-  th, td{padding:10px;border-bottom:1px solid rgba(0,0,0,.06);text-align:left}
+  th, td{padding:10px;border-bottom:1px solid rgba(42,48,67,.08);text-align:left}
   th{font-weight:600;color:var(--c-text);opacity:0.9}
-  tr:hover{background:rgba(0,0,0,.02)}
+  tr:hover{background:rgba(146,218,217,.05)}
 </style>
 </head>
 <body>
@@ -233,9 +251,9 @@ async function loadPhaseProgress(){
       
       // Формируем данные для пайчарта по статусам
       const statusMap = {
-        'не начато': { name: 'Не начато', color: '#94a3b8' },
-        'в работе': { name: 'В работе', color: '#3b82f6' },
-        'выполнено': { name: 'Выполнено', color: '#10b981' }
+        'не начато': { name: 'Не начато', color: '#F3DCE7' },
+        'в работе': { name: 'В работе', color: '#038681' },
+        'выполнено': { name: 'Выполнено', color: '#92DAD9' }
       };
       
       const pieData = [];
@@ -377,8 +395,8 @@ async function okrPhasePieChart(){
         borderRadius:[6,6,0,0],
         color:(params)=>{
           const phase=params.data.phase;
-          const colors={"ТЗ":"#2563EB","ОО":"#16BDCA","ПИ":"#10b981","Выполнено":"#8b5cf6"};
-          return colors[phase]||'#6b7280';
+          const colors={"ТЗ":"#038681","ОО":"#92DAD9","ПИ":"#135457","Выполнено":"#F3DCE7"};
+          return colors[phase]||'#2A3043';
         }
       },
       label:{
@@ -528,11 +546,11 @@ function okrRiskCompanyBarChart(){
             const minVal = Math.min(...values);
             if(maxVal === minVal) return '#F34C3F';
             const ratio = (params.value - minVal) / (maxVal - minVal);
-            // градиент: желтый (min) -> красный (max)
-            // желтый #FFD700 = rgb(255,215,0), красный #F34C3F = rgb(243,76,63)
-            const r = Math.round(255 - ratio * (255 - 243));
-            const g = Math.round(215 - ratio * (215 - 76));
-            const b = Math.round(0 + ratio * 63);
+            // градиент: светло-бирюзовый (min) -> алый (max)
+            // светло-бирюзовый #92DAD9 = rgb(146,218,217), алый #F34C3F = rgb(243,76,63)
+            const r = Math.round(146 + ratio * (243 - 146));
+            const g = Math.round(218 - ratio * (218 - 76));
+            const b = Math.round(217 - ratio * (217 - 63));
             return `rgb(${r},${g},${b})`;
           }
         },
@@ -632,14 +650,14 @@ function okrRiskCompanyTreemapChart(){
     const values = dataArr.map(d=>d.value);
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
-    // color function: yellow (min) -> red (max)
+    // color function: светло-бирюзовый (min) -> алый (max)
     const getColor = (val) => {
-      if(minVal === maxVal) return '#FFD700'; // yellow if all same
+      if(minVal === maxVal) return '#92DAD9'; // светло-бирюзовый if all same
       const ratio = (val - minVal) / (maxVal - minVal);
-      // yellow (#FFD700) to red (#F34C3F)
-      const r = Math.round(255 - ratio * (255 - 243));
-      const g = Math.round(215 - ratio * (215 - 76));
-      const b = Math.round(0 + ratio * (63 - 0));
+      // светло-бирюзовый (#92DAD9) to алый (#F34C3F)
+      const r = Math.round(146 + ratio * (243 - 146));
+      const g = Math.round(218 - ratio * (218 - 76));
+      const b = Math.round(217 - ratio * (217 - 63));
       return `rgb(${r},${g},${b})`;
     };
     // add color to each item
@@ -696,7 +714,7 @@ function okrRiskCompanyTreemapChart(){
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
 if(riskToggleBtn){ riskToggleBtn.onclick = async ()=>{ RISK_EXPANDED = !RISK_EXPANDED; await loadRiskSoon(); }; }
-async function init(){try{await loadData();setKPI();await loadPhaseProgress();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-red);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
+async function init(){try{await loadData();setKPI();await loadPhaseProgress();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-accent);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
