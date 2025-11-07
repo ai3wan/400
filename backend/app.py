@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2 import errors
 from datetime import datetime
 import os
 from typing import Dict, Any, List, Optional
@@ -954,8 +955,8 @@ async def visits_summary() -> Dict[str, Any]:
             for row in by_system_rows
         ]
 
-        cursor.execute(
-            """
+        recent_comment_key = "comment"
+        recent_query_with_comment = """
             WITH window AS (
                 SELECT CURRENT_DATE AS today,
                        CURRENT_DATE + INTERVAL '21 days' AS until
@@ -974,8 +975,34 @@ async def visits_summary() -> Dict[str, Any]:
             LEFT JOIN system_okr so ON so.id = ca.system_okr_id
             WHERE ca.start_date BETWEEN w.today AND w.until
             ORDER BY ca.start_date ASC NULLS LAST, ca.id ASC
-            """
-        )
+        """
+        recent_query_without_comment = """
+            WITH window AS (
+                SELECT CURRENT_DATE AS today,
+                       CURRENT_DATE + INTERVAL '21 days' AS until
+            )
+            SELECT
+                ca.id,
+                COALESCE(c.short_name, '—') AS company_name,
+                COALESCE(so.name, '—') AS system_name,
+                COALESCE(NULLIF(ca.city, ''), '—') AS city,
+                ca.start_date,
+                COALESCE(ca.period, '') AS period
+            FROM company_audit ca
+            JOIN window w ON TRUE
+            LEFT JOIN company c ON c.id = ca.company_id
+            LEFT JOIN system_okr so ON so.id = ca.system_okr_id
+            WHERE ca.start_date BETWEEN w.today AND w.until
+            ORDER BY ca.start_date ASC NULLS LAST, ca.id ASC
+        """
+        try:
+            cursor.execute(recent_query_with_comment)
+        except errors.UndefinedColumn:
+            conn.rollback()
+            cursor.execute(recent_query_without_comment)
+            recent_comment_key = "period"
+        except Exception:
+            raise
         recent_rows = cursor.fetchall()
         recent_visits = []
         for row in recent_rows:
@@ -991,7 +1018,7 @@ async def visits_summary() -> Dict[str, Any]:
                 "city": row.get("city") or "—",
                 "start_date": start_date.isoformat() if start_date else None,
                 "period": row.get("period") or "",
-                "comment": row.get("comment") or "",
+                "comment": row.get(recent_comment_key) or row.get("period") or "",
             })
 
         cursor.close()
