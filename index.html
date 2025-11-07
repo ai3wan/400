@@ -60,6 +60,12 @@
   th, td{padding:10px;border-bottom:1px solid rgba(42,48,67,.08);text-align:left}
   th{font-weight:600;color:var(--c-text);opacity:0.9}
   tr:hover{background:rgba(146,218,217,.05)}
+  .tabs{display:flex;gap:8px;margin-bottom:24px;border-bottom:2px solid rgba(42,48,67,.1)}
+  .tab{padding:12px 20px;cursor:pointer;border:none;background:transparent;color:var(--c-text);opacity:0.6;font-family:'Moscow Sans',sans-serif;font-size:16px;font-weight:500;border-bottom:3px solid transparent;transition:all 0.2s}
+  .tab:hover{opacity:0.8}
+  .tab.active{opacity:1;color:var(--c-primary);border-bottom-color:var(--c-primary)}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
 </style>
 </head>
 <body>
@@ -87,6 +93,14 @@
     </div>
     </div>
 
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="okr">ОКР</button>
+      <button class="tab" data-tab="visits">Выезды</button>
+    </div>
+
+    <!-- Tab Content: OKR -->
+    <div id="tab-okr" class="tab-content active">
     <!-- KPI (OKR) -->
     <div class="kpi-grid">
       <div class="card kpi-card">
@@ -190,7 +204,17 @@
       <div class="chart-title">Риски просрочки: Treemap по компаниям</div>
       <div id="okrRiskCompanyTreemap" class="chart-container" style="height:400px;"></div>
     </div>
-    
+    </div>
+    <!-- End Tab Content: OKR -->
+
+    <!-- Tab Content: Выезды -->
+    <div id="tab-visits" class="tab-content">
+      <div class="card">
+        <div class="chart-title">Выезды: пример чарта</div>
+        <div id="visitsChart" class="chart-container"></div>
+      </div>
+    </div>
+    <!-- End Tab Content: Выезды -->
     </div>
   
   <!-- Loading indicator -->
@@ -756,11 +780,93 @@ function okrRiskCompanyTreemapChart(){
 // Toggle handler
 const riskToggleBtn = document.getElementById('okrRiskToggle');
 if(riskToggleBtn){ riskToggleBtn.onclick = async ()=>{ RISK_EXPANDED = !RISK_EXPANDED; await loadRiskSoon(); }; }
+
+// Tab switching
+function initTabs(){
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      const tabName = tab.getAttribute('data-tab');
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      // Update active content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      const targetContent = document.getElementById(`tab-${tabName}`);
+      if(targetContent){
+        targetContent.classList.add('active');
+        // Initialize chart if visits tab
+        if(tabName === 'visits'){
+          setTimeout(() => initVisitsChart(), 100);
+        }
+      }
+    };
+  });
+}
+
+// Visits chart sample
+function initVisitsChart(){
+  try{
+    const elDom = document.getElementById('visitsChart');
+    if(!elDom) return;
+    const el = echarts.init(elDom);
+    // Sample data
+    const sampleData = [
+      {name: 'Январь', value: 12},
+      {name: 'Февраль', value: 19},
+      {name: 'Март', value: 15},
+      {name: 'Апрель', value: 22},
+      {name: 'Май', value: 18}
+    ];
+    el.setOption({
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {type: 'shadow'}
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: sampleData.map(d => d.name),
+        axisLabel: {fontFamily: 'Moscow Sans, sans-serif'}
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Количество',
+        nameTextStyle: {fontFamily: 'Moscow Sans, sans-serif'}
+      },
+      series: [{
+        name: 'Выезды',
+        type: 'bar',
+        data: sampleData.map(d => d.value),
+        itemStyle: {
+          color: '#038681',
+          borderRadius: [6,6,0,0]
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: '{c}',
+          fontFamily: 'Moscow Sans, sans-serif'
+        }
+      }]
+    }, true);
+    window.addEventListener('resize', () => el.resize());
+  }catch(e){ console.error('initVisitsChart error:', e); }
+}
+
 async function init(){try{await loadData();setKPI();await loadPhaseProgress();await okrPhasePieChart();await loadRiskSoon();document.getElementById('loading').style.display='none';}catch(e){console.error(e);document.getElementById('loading').innerHTML='<div style="background:var(--c-card);padding:32px;border-radius:16px;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div style="font-size:18px;font-weight:600;color:var(--c-accent);">Ошибка загрузки данных</div><div style="margin-top:12px;">'+e.message+'</div></div>';}}
 document.getElementById('themeBtn').onclick=()=>{const h=document.documentElement;const t=h.getAttribute('data-theme');const n=t==='dark'?'light':'dark';h.setAttribute('data-theme',n);document.getElementById('themeBtn').textContent=n==='dark'?'☀️':'🌙';};
 document.getElementById('refreshBtn').onclick=()=>{document.getElementById('loading').style.display='flex';init();};
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
 if(closeBtn){ closeBtn.onclick=()=>{ const el=document.getElementById('okrPhaseDetails'); if(el){ el.style.display='none'; } }; }
+initTabs();
 initAuth();
 if(localStorage.getItem(AUTH_KEY)==='1'){init();}
 </script>
