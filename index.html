@@ -284,6 +284,14 @@ async function loadPhaseProgress(){
             return `${params.name}<br/>Количество: ${params.value}`;
           }
         },
+        legend: {
+          type: 'scroll',
+          bottom: 0,
+          textStyle: {
+            fontFamily: 'Moscow Sans, sans-serif',
+            fontSize: 12
+          }
+        },
         graphic: [{
           type: 'text',
           left: 'center',
@@ -306,13 +314,10 @@ async function loadPhaseProgress(){
             borderWidth: 2
           },
           label: {
-            show: true,
-            formatter: '{b}\n{c}',
-            fontSize: 11,
-            fontFamily: 'Moscow Sans, sans-serif'
+            show: false
           },
           labelLine: {
-            show: true
+            show: false
           },
           data: pieData
         }]
