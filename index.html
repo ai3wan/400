@@ -464,12 +464,13 @@ function visitsCalendarChart(){
   const chart = getChartInstance('visitsCalendar');
   if(!chart) return;
 
-  const rawEntries = VISITS_DATA?.calendar || [];
+  const rawEntries = Array.isArray(VISITS_DATA?.calendar) ? VISITS_DATA.calendar : [];
+  const validEntries = rawEntries.filter(item => item && item.date);
   const range = VISITS_DATA?.calendar_range || {};
   const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 
-  const dates = rawEntries
-    .map(item => item?.date)
+  const dates = validEntries
+    .map(item => item.date)
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));
 
@@ -480,7 +481,7 @@ function visitsCalendarChart(){
 
   const rangeValue = { start: toISODateString(startDate), end: toISODateString(endDate) };
 
-  const heatmapData = rawEntries.map(item => {
+  const heatmapData = validEntries.map(item => {
     const count = Number(item.count) || 0;
     const hasMoscow = !!item.has_moscow;
     return {
@@ -497,6 +498,11 @@ function visitsCalendarChart(){
   const weekNumberData = [];
   for(let current = new Date(startDate.getTime()); current <= endDate; current.setUTCDate(current.getUTCDate() + 7)){
     weekNumberData.push({ value: [toISODateString(current), 0], week: getISOWeekNumber(current) });
+  }
+
+  if(!heatmapData.length){
+    heatmapData.push({ value: [rangeValue.start, 0], hasMoscow: false, itemStyle: { color: 'rgba(3,134,129,0.12)' } });
+    valueLabels.push({ value: [rangeValue.start, 0], count: 0 });
   }
 
   chart.setOption({
