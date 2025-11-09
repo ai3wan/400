@@ -293,9 +293,9 @@
 
     <!-- Tab Content: Отказность -->
     <div id="tab-failures" class="tab-content">
-      <div class="card">
-        <div class="chart-title">Частота отказов компрессорных агрегатов на 1 поезд в год</div>
-        <div id="failuresBar" class="chart-container" style="height:360px;"></div>
+      <div class="card" style="margin-top:0;">
+        <div class="chart-title">Отказность по аналогам</div>
+        <div id="failuresBar" class="chart-container" style="height:420px;width:100%;"></div>
       </div>
     </div>
     <!-- End Tab Content: Отказность -->
@@ -792,8 +792,11 @@ function initFailuresChart(){
       barWidth: '45%'
     }]
   }, true);
+  window.addEventListener('resize', () => {
+    const instance = echarts.getInstanceByDom(elDom);
+    if(instance) instance.resize();
+  });
 }
-
 async function loadVisitsData(force = false){
   if(visitsInitialized && !force){
     renderVisits();
