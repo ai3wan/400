@@ -294,7 +294,7 @@
     <!-- Tab Content: Отказность -->
     <div id="tab-failures" class="tab-content">
       <div class="card" style="margin-top:0;">
-        <div class="chart-title">Отказность компрессорных агрегатов по аналогам на 1 поезд в год</div>
+        <div class="chart-title">Отказность аналогов за 2024 год</div>
         <div id="failuresBar" class="chart-container" style="height:420px;width:100%;"></div>
       </div>
     </div>
@@ -764,10 +764,10 @@ function initFailuresChart(){
   const chart = getChartInstance('failuresBar');
   if(!chart) return;
   const categories = [
-    'Сапсан (Knorr)',
-    'Финист (ЧКЗ, ЭС104)',
-    'Ласточка (ЧКЗ, ЭС1П)',
-    'Ласточка (ЧКЗ, ЭС2Г45+)'
+    'ЭС10 "Сапсан" (Knorr)',
+    'ЭС104 "Финист" (ЧКЗ)',
+    'ЭС1П "Ласточка" (ЧКЗ)',
+    'ЭС2Г45+ "Ласточка" (ЧКЗ)'
   ];
   const values = [1.50, 0.23, 1.13, 3.10];
   chart.setOption({
