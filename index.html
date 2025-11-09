@@ -798,10 +798,7 @@ function initFailuresChart(){
       barWidth: '45%'
     }]
   }, true);
-  window.addEventListener('resize', () => {
-    const instance = echarts.getInstanceByDom(elDom);
-    if(instance) instance.resize();
-  });
+  requestAnimationFrame(() => chart.resize());
 }
 async function loadVisitsData(force = false){
   if(visitsInitialized && !force){
@@ -1387,7 +1384,12 @@ function initTabs(){
         if(tabName === 'visits'){
           setTimeout(() => loadVisitsData(), 100);
         }else if(tabName === 'failures'){
-          setTimeout(() => initFailuresChart(), 100);
+          setTimeout(() => {
+            initFailuresChart();
+            const el = document.getElementById('failuresBar');
+            const inst = el ? echarts.getInstanceByDom(el) : null;
+            if(inst) inst.resize();
+          }, 100);
         }
       }
     };
