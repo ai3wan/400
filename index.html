@@ -479,7 +479,9 @@ function visitsCalendarChart(){
   startDate = getMonday(startDate);
   endDate = getWeekEnd(endDate);
 
-  const rangeValue = { start: toISODateString(startDate), end: toISODateString(endDate) };
+  const rangeStart = toISODateString(startDate);
+  const rangeEnd = toISODateString(endDate);
+  const rangeValue = [rangeStart, rangeEnd];
 
   const heatmapData = validEntries.map(item => {
     const count = Number(item.count) || 0;
@@ -501,8 +503,8 @@ function visitsCalendarChart(){
   }
 
   if(!heatmapData.length){
-    heatmapData.push({ value: [rangeValue.start, 0], hasMoscow: false, itemStyle: { color: 'rgba(3,134,129,0.12)' } });
-    valueLabels.push({ value: [rangeValue.start, 0], count: 0 });
+    heatmapData.push({ value: [rangeStart, 0], hasMoscow: false, itemStyle: { color: 'rgba(3,134,129,0.12)' } });
+    valueLabels.push({ value: [rangeStart, 0], count: 0 });
   }
 
   chart.setOption({
