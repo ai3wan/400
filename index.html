@@ -463,11 +463,22 @@ function setVisitsKPI(kpi){
 function visitsCalendarChart(){
   const chart = getChartInstance('visitsCalendar');
   if(!chart) return;
-  const rawEntries = VISITS_DATA?.calendar || [];
-  const range = VISITS_DATA?.calendar_range;
-  let rangeValue = `${new Date().getFullYear()}`;
 
-  const monthNameMap = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  const rawEntries = VISITS_DATA?.calendar || [];
+  const range = VISITS_DATA?.calendar_range || {};
+  const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+  const dates = rawEntries
+    .map(item => item?.date)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  let startDate = parseISODate(range.start) || (dates.length ? parseISODate(dates[0]) : new Date());
+  let endDate = parseISODate(range.end) || (dates.length ? parseISODate(dates[dates.length - 1]) : new Date());
+  startDate = getMonday(startDate);
+  endDate = getWeekEnd(endDate);
+
+  const rangeValue = { start: toISODateString(startDate), end: toISODateString(endDate) };
 
   const heatmapData = rawEntries.map(item => {
     const count = Number(item.count) || 0;
@@ -475,61 +486,58 @@ function visitsCalendarChart(){
     return {
       value: [item.date, count],
       hasMoscow,
-    itemStyle: { 
+      itemStyle: {
         color: hasMoscow ? '#F34C3F' : (count > 0 ? '#038681' : 'rgba(3,134,129,0.18)')
       }
     };
   });
 
+  const valueLabels = heatmapData.map(item => ({ value: item.value, count: item.value[1] }));
+
   const weekNumberData = [];
-  if(range && range.start && range.end){
-    const startDate = parseISODate(range.start);
-    const endDate = parseISODate(range.end);
-    if(startDate && endDate){
-      const alignedStart = getMonday(startDate);
-      const alignedEnd = getWeekEnd(endDate);
-      rangeValue = { start: toISODateString(alignedStart), end: toISODateString(alignedEnd) };
-      for(let current = new Date(alignedStart.getTime()); current <= alignedEnd; current.setUTCDate(current.getUTCDate() + 7)){
-        weekNumberData.push({
-          value: [toISODateString(current), 0],
-          week: getISOWeekNumber(current)
-        });
-      }
-    }
+  for(let current = new Date(startDate.getTime()); current <= endDate; current.setUTCDate(current.getUTCDate() + 7)){
+    weekNumberData.push({ value: [toISODateString(current), 0], week: getISOWeekNumber(current) });
   }
 
   chart.setOption({
     calendar: {
-      top: 60,
+      top: 50,
       left: 70,
       right: 20,
-      bottom: 90,
+      bottom: 100,
       cellSize: ['auto', 26],
       range: rangeValue,
       firstDay: 1,
       itemStyle: {
         borderWidth: 1,
-        borderColor: 'rgba(19,84,87,0.1)',
+        borderColor: 'rgba(19,84,87,0.12)',
         borderRadius: 4
       },
       yearLabel: { show: false },
       monthLabel: {
-        margin: 34,
-        position: 'start',
-        align: 'left',
+        margin: 40,
         color: 'var(--c-text)',
         fontFamily: 'Moscow Sans, sans-serif',
-        nameMap: monthNameMap
+        formatter: (value) => {
+          const parts = String(value).split('-');
+          if(parts.length >= 2){
+            const idx = Number(parts[1]) - 1;
+            if(idx >= 0 && idx < monthNames.length){
+              return monthNames[idx];
+            }
+          }
+          return value;
+        }
       },
       dayLabel: {
         position: 'top',
         nameMap: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-        margin: 16,
+        margin: 18,
         color: 'rgba(19,84,87,0.7)',
         fontFamily: 'Moscow Sans, sans-serif'
       }
     },
-    tooltip: { 
+    tooltip: {
       position: 'top',
       formatter: (params) => {
         const item = params?.data || {};
@@ -544,9 +552,7 @@ function visitsCalendarChart(){
         type: 'heatmap',
         coordinateSystem: 'calendar',
         data: heatmapData,
-        itemStyle: {
-          borderRadius: 6
-        },
+        itemStyle: { borderRadius: 6 },
         encode: { tooltip: 1 },
         emphasis: { focus: 'self' }
       },
@@ -554,7 +560,7 @@ function visitsCalendarChart(){
         type: 'scatter',
         coordinateSystem: 'calendar',
         symbolSize: 1,
-        data: heatmapData.map(item => ({ value: item.value, count: item.value[1] })),
+        data: valueLabels,
         label: {
           show: true,
           formatter: ({ data }) => (data && data.count ? data.count : ''),
@@ -571,12 +577,12 @@ function visitsCalendarChart(){
         type: 'scatter',
         coordinateSystem: 'calendar',
         symbolSize: 1,
-        data: weekNumberData.map(item => ({ value: item.value, week: item.week })),
+        data: weekNumberData,
         label: {
           show: true,
           formatter: (params) => `${params.data.week}`,
           position: 'top',
-          offset: [0, -46],
+          offset: [0, -48],
           color: 'rgba(19,84,87,0.7)',
           fontSize: 12,
           fontFamily: 'Moscow Sans, sans-serif'
