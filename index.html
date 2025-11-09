@@ -769,8 +769,8 @@ function initFailuresChart(){
       data: categories,
       axisLabel: {
         fontFamily: 'Moscow Sans, sans-serif',
-        fontSize: 12,
-        rotate: 12,
+        fontSize: 14,
+        rotate: 0,
         color: 'var(--c-text)'
       }
     },
@@ -792,7 +792,8 @@ function initFailuresChart(){
           position: 'top',
           formatter: value.toFixed(2),
           fontFamily: 'Moscow Sans, sans-serif',
-          fontSize: 12
+          fontSize: 16,
+          fontWeight: 600
         }
       })),
       barWidth: '45%'
