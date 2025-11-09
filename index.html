@@ -99,6 +99,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="okr">Статус ОКР</button>
       <button class="tab" data-tab="visits">Выезды</button>
+      <button class="tab" data-tab="failures">Отказность</button>
     </div>
 
     <!-- Tab Content: OKR -->
@@ -289,6 +290,15 @@
       </div>
     </div>
     <!-- End Tab Content: Выезды -->
+
+    <!-- Tab Content: Отказность -->
+    <div id="tab-failures" class="tab-content">
+      <div class="card">
+        <div class="chart-title">Частота отказов компрессорных агрегатов на 1 поезд в год</div>
+        <div id="failuresBar" class="chart-container" style="height:360px;"></div>
+      </div>
+    </div>
+    <!-- End Tab Content: Отказность -->
     </div>
   
   <!-- Loading indicator -->
@@ -731,6 +741,57 @@ function renderVisits(){
   visitsByCityChart();
   visitsBySystemChart();
   renderVisitsRecent();
+}
+
+function initFailuresChart(){
+  const elDom = document.getElementById('failuresBar');
+  if(!elDom) return;
+  const chart = getChartInstance('failuresBar');
+  if(!chart) return;
+  const categories = [
+    'Сапсан (Knorr)',
+    'Финист (ЧКЗ, ЭС104)',
+    'Ласточка (ЧКЗ, ЭС1П)',
+    'Ласточка (ЧКЗ, ЭС2Г45+)'
+  ];
+  const values = [1.50, 0.23, 1.13, 3.10];
+  chart.setOption({
+    grid: { left: 60, right: 20, top: 40, bottom: 60 },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLabel: {
+        fontFamily: 'Moscow Sans, sans-serif',
+        fontSize: 12,
+        rotate: 12,
+        color: 'var(--c-text)'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Отказов / поезд · год',
+      nameTextStyle: { fontFamily: 'Moscow Sans, sans-serif', color: 'var(--c-text)' },
+      axisLabel: { fontFamily: 'Moscow Sans, sans-serif' }
+    },
+    series: [{
+      type: 'bar',
+      data: values.map((value, idx) => ({
+        value,
+        itemStyle: {
+          color: idx === 3 ? '#F34C3F' : (['#038681','#92DAD9','#135457'][idx] || '#038681')
+        },
+        label: {
+          show: true,
+          position: 'top',
+          formatter: value.toFixed(2),
+          fontFamily: 'Moscow Sans, sans-serif',
+          fontSize: 12
+        }
+      })),
+      barWidth: '45%'
+    }]
+  }, true);
 }
 
 async function loadVisitsData(force = false){
@@ -1316,6 +1377,8 @@ function initTabs(){
         // Initialize chart if visits tab
         if(tabName === 'visits'){
           setTimeout(() => loadVisitsData(), 100);
+        }else if(tabName === 'failures'){
+          setTimeout(() => initFailuresChart(), 100);
         }
       }
     };
@@ -1330,12 +1393,13 @@ document.getElementById('refreshBtn').onclick=async()=>{
   if(visitsInitialized){
     await loadVisitsData(true);
   }
+  initFailuresChart();
 };
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
 if(closeBtn){ closeBtn.onclick=()=>{ const el=document.getElementById('okrPhaseDetails'); if(el){ el.style.display='none'; } }; }
 initTabs();
 initAuth();
-if(localStorage.getItem(AUTH_KEY)==='1'){init();}
+if(localStorage.getItem(AUTH_KEY)==='1'){init();initFailuresChart();}
 </script>
 </body>
 </html>
