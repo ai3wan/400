@@ -1195,6 +1195,7 @@ async def okr_details_by_phase(phase: str) -> Dict[str, Any]:
                     COALESCE(current_progress, 0) AS current_progress
                 FROM okr_summary
                 WHERE current_phase = %s
+                  AND COALESCE(current_progress, 0) < 100
                 ORDER BY end_plan_date ASC NULLS LAST,
                          COALESCE(current_progress, 0) ASC,
                          system_name ASC
