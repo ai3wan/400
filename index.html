@@ -70,10 +70,7 @@
   .calendar-legend span{display:flex;align-items:center;gap:6px}
   .preview-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.85);display:none;align-items:center;justify-content:center;z-index:99998;padding:40px}
   .preview-content{position:relative;background:#0b1218;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.4);width:90%;height:90%;display:flex;flex-direction:column}
-  .preview-content.light{background:#fff}
   .preview-close{position:absolute;top:12px;right:12px;border:none;background:rgba(0,0,0,0.35);color:#fff;font-size:24px;line-height:1;padding:4px 10px;border-radius:999px;cursor:pointer}
-  .preview-close.light{background:rgba(0,0,0,0.08);color:#111827}
-  .preview-frame{flex:1;border:none;border-radius:12px;margin:0}
   .preview-link{color:var(--c-primary);text-decoration:underline dashed;cursor:pointer;text-underline-offset:3px}
 </style>
 </head>
@@ -86,7 +83,7 @@
       <input id="authInput" type="password" placeholder="Пароль" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,0,0,.1);background:var(--c-card);color:var(--c-text);margin-bottom:12px;">
       <div style="display:flex;gap:10px;">
         <button id="authSubmit" style="flex:1;">Войти</button>
-        <button id="authReset" style="">Сброс</button>
+        <button id="authReset">Сброс</button>
       </div>
       <div id="authError" style="color:var(--c-red);font-size:12px;margin-top:8px;display:none;">Неверный пароль</div>
     </div>
@@ -114,6 +111,7 @@
       <button class="tab active" data-tab="okr">Статус ОКР</button>
       <button class="tab" data-tab="visits">Выезды</button>
       <button class="tab" data-tab="failures">Отказность</button>
+      <button class="tab" data-tab="focus">Зона внимания</button>
     </div>
 
     <!-- Tab Content: OKR -->
@@ -139,7 +137,7 @@
       <div class="card kpi-card">
         <div class="kpi-value" id="okr-kpi-ready">0</div>
         <div class="kpi-label">Полностью выполнено ОКР</div>
-      </div>
+    </div>
     </div>
 
     <!-- Phase Progress Pie Charts -->
@@ -182,7 +180,7 @@
           </thead>
           <tbody id="okrPhaseDetailsBody"></tbody>
         </table>
-      </div>
+    </div>
     </div>
 
     <div class="card" style="margin-top:20px;">
@@ -313,6 +311,15 @@
       </div>
     </div>
     <!-- End Tab Content: Отказность -->
+
+    <!-- Tab Content: Зона внимания -->
+    <div id="tab-focus" class="tab-content">
+      <div class="card" style="display:flex;flex-direction:column;gap:18px;">
+        <div class="chart-title">5 проблемных вопросов (псевдоданные)</div>
+        <ol id="focusList" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.4;color:var(--c-text);"></ol>
+      </div>
+    </div>
+    <!-- End Tab Content: Зона внимания -->
     </div>
   
   <!-- Loading indicator -->
@@ -552,7 +559,7 @@ function visitsCalendarChart(){
     return {
       value: [item.date, count],
       hasMoscow,
-      itemStyle: {
+    itemStyle: { 
         color: hasMoscow ? '#F34C3F' : (count > 0 ? '#038681' : 'rgba(3,134,129,0.18)')
       }
     };
@@ -608,7 +615,7 @@ function visitsCalendarChart(){
         fontFamily: 'Moscow Sans, sans-serif'
       }
     },
-    tooltip: {
+    tooltip: { 
       position: 'top',
       formatter: (params) => {
         const item = params?.data || {};
@@ -857,7 +864,7 @@ function initFailuresChart(){
       type: 'bar',
       data: values.map((value, idx) => ({
         value,
-        itemStyle: {
+    itemStyle: { 
           color: idx === 3 ? '#F34C3F' : (['#038681','#92DAD9','#135457'][idx] || '#038681')
         },
         label: {
@@ -873,6 +880,59 @@ function initFailuresChart(){
     }]
   }, true);
   requestAnimationFrame(() => chart.resize());
+}
+
+function populateFocusList(){
+  const focusEl = document.getElementById('focusList');
+  if(!focusEl) return;
+  const items = [
+    {
+      title: 'ОКР и инженерия',
+      detail: '4 из 11 критических ОКР без актуализированных 3D-моделей; два ключевых инженера задействованы на сторонних проектах.'
+    },
+    {
+      title: 'Производство и качество',
+      detail: '6 производственных заказов стоят в ожидании корректировки технологических карт; доля брака по кабельным жгутам выросла до 7%.'
+    },
+    {
+      title: 'Поставки и логистика',
+      detail: 'Компрессоры TAD650 задерживаются на 21 день, склад холодных агрегатов заполнен на 94%; требуется ускоренная таможенная очистка.'
+    },
+    {
+      title: 'Юридические и договорные вопросы',
+      detail: 'Контракт с подрядчиком №42 истёк, допсоглашение не подписано; штрафы за просрочку — 1,2 млн ₽.'
+    },
+    {
+      title: 'Финансы и экономика',
+      detail: 'Фактические затраты по программе превысили план на 8,7%; экономия от импортозамещения покрыла лишь 40% перерасхода.'
+    },
+    {
+      title: 'Сертификация и стандарты',
+      detail: 'Документация для ОТК-05 не соответствует ГОСТ Р 55513, испытательный стенд не готов к инспекции Ростехнадзора.'
+    },
+    {
+      title: 'Взаимодействие сторон проекта',
+      detail: 'Совместные ревью с головным институтом сдвинуты на квартал; нет единого канала обмена конструкторскими изменениями.'
+    },
+    {
+      title: 'Эксплуатационные риски',
+      detail: 'Сервисные данные показывают рост аварийности компрессоров на 15%; требуется корректировка плана ТО-2.'
+    },
+    {
+      title: 'Санкционные и импортные риски',
+      detail: 'Дистрибьютор гидравлики попал в санкционный список; готовность отечественного аналога — 60%.'
+    },
+    {
+      title: 'Управленческие риски',
+      detail: 'Ключевые KPI проектного офиса выполняются на 72%; запас по графику — 12 рабочих дней.'
+    }
+  ];
+  focusEl.innerHTML = items.map(item => `
+    <li>
+      <strong>${escapeHTML(item.title)}</strong><br/>
+      <span style="opacity:0.78;">${escapeHTML(item.detail)}</span>
+    </li>
+  `).join('');
 }
 async function loadVisitsData(force = false){
   if(visitsInitialized && !force){
@@ -1012,15 +1072,15 @@ async function loadPhaseProgress(){
       },
       label: {
             show: false
-          },
-          labelLine: {
+      },
+      labelLine: {
             show: false
           },
           data: pieData
         }]
       }, true);
-      
-      window.addEventListener('resize', () => el.resize());
+  
+  window.addEventListener('resize', () => el.resize());
     });
   }catch(e){ console.error('loadPhaseProgress error:', e); }
 }
@@ -1471,6 +1531,8 @@ function initTabs(){
             const inst = el ? echarts.getInstanceByDom(el) : null;
             if(inst) inst.resize();
           }, 100);
+        }else if(tabName === 'focus'){
+          populateFocusList();
         }
       }
     };
@@ -1499,7 +1561,7 @@ if(previewOverlayEl){
 }
 initTabs();
 initAuth();
-if(localStorage.getItem(AUTH_KEY)==='1'){init();initFailuresChart();}
+if(localStorage.getItem(AUTH_KEY)==='1'){init();initFailuresChart();populateFocusList();}
 </script>
 </body>
 </html>
