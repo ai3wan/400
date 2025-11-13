@@ -76,12 +76,12 @@
   .preview-link{color:var(--c-primary);text-decoration:underline dashed;cursor:pointer;text-underline-offset:3px}
   .focus-grid{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:18px}
   @media (max-width:1400px){.focus-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}}
-  .focus-card{display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:16px;box-shadow:0 6px 16px rgba(42,48,67,.12);border:1px solid rgba(42,48,67,.08);background:var(--c-card);text-align:left;min-height:240px}
-  .focus-metric{text-align:center;display:flex;flex-direction:column;gap:2px}
-  .focus-card .kpi-value{font-size:38px;color:var(--c-primary)}
-  .focus-card .kpi-label{font-size:14px;color:var(--c-text);opacity:0.85;text-transform:uppercase;letter-spacing:.6px}
-  .focus-list{list-style:decimal;padding-left:18px;margin:0;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--c-text);opacity:0.88}
-  .focus-list li span{opacity:0.88}
+  .focus-card{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px;box-shadow:0 6px 16px rgba(42,48,67,.12);border:1px solid rgba(42,48,67,.08);background:var(--c-card);text-align:left;min-height:140px}
+  .focus-metric{text-align:center;display:flex;flex-direction:column;gap:0}
+  .focus-card .kpi-value{font-size:32px;color:var(--c-primary)}
+  .focus-card .kpi-label{font-size:12px;color:var(--c-text);opacity:0.82;text-transform:uppercase;letter-spacing:.5px}
+  .focus-list{list-style:decimal;padding-left:16px;margin:0;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--c-text);opacity:0.85}
+  .focus-list li span{opacity:0.85}
 </style>
 </head>
 <body>
@@ -969,9 +969,7 @@ function populateFocusList(){
       issues: [
         'Из 11 критических ОКР 4 без актуализированного 3D-моделирования.',
         'Не утверждён состав экспертной комиссии для ОКР «ЭС104-Ремонт».',
-        'Заморожена интеграция CAD/PLM с системами расчёта нагрузок.',
-        'Нет резервного инженера-конструктора по узлу охлаждения.',
-        'План пересмотра ТЗ-2025 не синхронизирован с головным институтом.'
+        'Заморожена интеграция CAD/PLM с системами расчёта нагрузок.'
       ]
     },
     production: {
@@ -979,9 +977,7 @@ function populateFocusList(){
       issues: [
         'Нарастание брака по кабельным жгутам до 7% (цех 2).',
         'Стойка испытаний компрессоров простаивает 12 смен подряд.',
-        'Срыв графика антикоррозионной обработки на 4 корпуса.',
-        'Команда ОТК перегружена — аудит 3-й линии перенесён.',
-        'Нет данных по внедрению новых стандартов сварки, срок — декабрь.'
+        'Срыв графика антикоррозионной обработки на 4 корпуса.'
       ]
     },
     supply: {
@@ -989,9 +985,7 @@ function populateFocusList(){
       issues: [
         'Компрессоры TAD650 задерживаются на 21 день.',
         'Дефицит трубных фланцев — склад готовой продукции заполнен на 94%.',
-        'Нужен альтернативный поставщик клапанов высокого давления.',
-        'График таможенной очистки не учитывает новые проверки.',
-        'Нет подтверждения по отгрузке редукторов «зоноопасного» исполнения.'
+        'Нужен альтернативный поставщик клапанов высокого давления.'
       ]
     },
     legal: {
@@ -999,8 +993,7 @@ function populateFocusList(){
       issues: [
         'Контракт №42 истёк — допсоглашение не подписано.',
         'Разногласия по условиям сервисного обслуживания Ласточек.',
-        'Не закрыт претензионный акт за недопоставку 2024Q2.',
-        'Требуется согласовать новую редакцию ТЗ с заказчиком.'
+        'Не закрыт претензионный акт за недопоставку 2024Q2.'
       ]
     },
     finance: {
@@ -1008,17 +1001,14 @@ function populateFocusList(){
       issues: [
         'Перерасход бюджета на 8,7% по итогам Q3.',
         'Нет утверждения лимитов на импортозамещение по позициям №17-19.',
-        'Замедлена оплата поставок: задержка на 28 рабочих дней.',
-        'Средства на страхование критичных грузов не заложены.',
-        'Экономия по проекту покрывает лишь 40% перерасхода.'
+        'Замедлена оплата поставок: задержка на 28 рабочих дней.'
       ]
     },
     cert: {
       count: 3,
       issues: [
         'Документация ОТК-05 не соответствует ГОСТ Р 55513.',
-        'Сертификация HVAC-модуля перенесена на февраль 2026.',
-        'Не готов стенд для инспекции Ростехнадзора.'
+        'Сертификация HVAC-модуля перенесена на февраль 2026.'
       ]
     },
     interaction: {
@@ -1026,35 +1016,27 @@ function populateFocusList(){
       issues: [
         'Совместные ревью с головным институтом сдвинуты на квартал.',
         'Нет единого канала обмена конструкторскими изменениями.',
-        'Отсутствует weekly по «санкционным» поставкам.',
-        'Утрачен контроль за SLA на доработку схем.'
+        'Отсутствует weekly по «санкционным» поставкам.'
       ]
     },
     operation: {
       count: 5,
       issues: [
-        'Аварийность компрессоров в эксплуатации выросла на 15%.',
         'ТО-2 не учитывает новые требования к фильтрам.',
-        'Нет стандартизированных карт технических процедур.',
-        'Ответственность за анализ эксплуатационных данных размазана.',
-        'Не закрыт вопрос по складу запчастей для депо «Петушки».'
+        'Нет стандартизированных карт технических процедур.'
       ]
     },
     sanctions: {
       count: 3,
       issues: [
-        'Дистрибьютор гидравлики попал в санкционный список.',
-        'Отечественный аналог компрессора готов на 60%.',
-        'Нет решения по замене импортного ПО для диагностики.'
+        'Отечественный аналог компрессора готов на 60%.'
       ]
     },
     management: {
       count: 4,
       issues: [
-        'KPI проектного офиса выполняются на 72%.',
         'Запас по графику — 12 рабочих дней, требуется резервный план.',
-        'Нет прозрачного репорта руководству по финальным узлам.',
-        'Бэклог критичных задач превышает доступные ресурсы.'
+        'Нет прозрачного репорта руководству по финальным узлам.'
       ]
     }
   };
