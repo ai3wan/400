@@ -71,7 +71,11 @@
   .preview-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.85);display:none;align-items:center;justify-content:center;z-index:99998;padding:40px}
   .preview-content{position:relative;background:#0b1218;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.4);width:90%;height:90%;display:flex;flex-direction:column}
   .preview-close{position:absolute;top:12px;right:12px;border:none;background:rgba(0,0,0,0.35);color:#fff;font-size:24px;line-height:1;padding:4px 10px;border-radius:999px;cursor:pointer}
+  .preview-close.light{background:rgba(0,0,0,0.08);color:#111827}
+  .preview-frame{flex:1;border:none;border-radius:12px;margin:0}
   .preview-link{color:var(--c-primary);text-decoration:underline dashed;cursor:pointer;text-underline-offset:3px}
+  .focus-list{list-style:decimal;padding-left:18px;margin:0;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--c-text);opacity:0.88}
+  .focus-list li strong{font-size:15px;color:var(--c-text);opacity:1}
 </style>
 </head>
 <body>
@@ -314,12 +318,79 @@
 
     <!-- Tab Content: Зона внимания -->
     <div id="tab-focus" class="tab-content">
-      <div class="card" style="display:flex;flex-direction:column;gap:18px;">
-        <div class="chart-title">5 проблемных вопросов (псевдоданные)</div>
-        <ol id="focusList" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.4;color:var(--c-text);"></ol>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
+        <div class="card" data-focus="okr">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>ОКР и инженерия</span>
+            <span class="kpi-value" id="focus-okr-count">0</span>
+          </div>
+          <ul id="focus-okr-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="production">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Производство и качество</span>
+            <span class="kpi-value" id="focus-production-count">0</span>
+          </div>
+          <ul id="focus-production-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="supply">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Поставки и логистика</span>
+            <span class="kpi-value" id="focus-supply-count">0</span>
+          </div>
+          <ul id="focus-supply-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="legal">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Юридические и договорные вопросы</span>
+            <span class="kpi-value" id="focus-legal-count">0</span>
+          </div>
+          <ul id="focus-legal-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="finance">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Финансы и экономика</span>
+            <span class="kpi-value" id="focus-finance-count">0</span>
+          </div>
+          <ul id="focus-finance-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="cert">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Сертификация и стандарты</span>
+            <span class="kpi-value" id="focus-cert-count">0</span>
+          </div>
+          <ul id="focus-cert-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="interaction">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Взаимодействие сторон проекта</span>
+            <span class="kpi-value" id="focus-interaction-count">0</span>
+          </div>
+          <ul id="focus-interaction-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="operation">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Эксплуатационные риски</span>
+            <span class="kpi-value" id="focus-operation-count">0</span>
+          </div>
+          <ul id="focus-operation-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="sanctions">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Санкционные и импортные риски</span>
+            <span class="kpi-value" id="focus-sanctions-count">0</span>
+          </div>
+          <ul id="focus-sanctions-list" class="focus-list"></ul>
+        </div>
+        <div class="card" data-focus="management">
+          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Управленческие риски</span>
+            <span class="kpi-value" id="focus-management-count">0</span>
+          </div>
+          <ul id="focus-management-list" class="focus-list"></ul>
+        </div>
       </div>
     </div>
-    <!-- End Tab Content: Зона внимания -->
     </div>
   
   <!-- Loading indicator -->
@@ -885,54 +956,114 @@ function initFailuresChart(){
 function populateFocusList(){
   const focusEl = document.getElementById('focusList');
   if(!focusEl) return;
-  const items = [
-    {
-      title: 'ОКР и инженерия',
-      detail: '4 из 11 критических ОКР без актуализированных 3D-моделей; два ключевых инженера задействованы на сторонних проектах.'
+  const cards = document.querySelectorAll('[data-focus]');
+  const data = {
+    okr: {
+      count: 7,
+      issues: [
+        'Из 11 критических ОКР 4 без актуализированного 3D-моделирования.',
+        'Не утверждён состав экспертной комиссии для ОКР «ЭС104-Ремонт».',
+        'Заморожена интеграция CAD/PLM с системами расчёта нагрузок.',
+        'Нет резервного инженера-конструктора по узлу охлаждения.',
+        'План пересмотра ТЗ-2025 не синхронизирован с головным институтом.'
+      ]
     },
-    {
-      title: 'Производство и качество',
-      detail: '6 производственных заказов стоят в ожидании корректировки технологических карт; доля брака по кабельным жгутам выросла до 7%.'
+    production: {
+      count: 6,
+      issues: [
+        'Нарастание брака по кабельным жгутам до 7% (цех 2).',
+        'Стойка испытаний компрессоров простаивает 12 смен подряд.',
+        'Срыв графика антикоррозионной обработки на 4 корпуса.',
+        'Команда ОТК перегружена — аудит 3-й линии перенесён.',
+        'Нет данных по внедрению новых стандартов сварки, срок — декабрь.'
+      ]
     },
-    {
-      title: 'Поставки и логистика',
-      detail: 'Компрессоры TAD650 задерживаются на 21 день, склад холодных агрегатов заполнен на 94%; требуется ускоренная таможенная очистка.'
+    supply: {
+      count: 5,
+      issues: [
+        'Компрессоры TAD650 задерживаются на 21 день.',
+        'Дефицит трубных фланцев — склад готовой продукции заполнен на 94%.',
+        'Нужен альтернативный поставщик клапанов высокого давления.',
+        'График таможенной очистки не учитывает новые проверки.',
+        'Нет подтверждения по отгрузке редукторов «зоноопасного» исполнения.'
+      ]
     },
-    {
-      title: 'Юридические и договорные вопросы',
-      detail: 'Контракт с подрядчиком №42 истёк, допсоглашение не подписано; штрафы за просрочку — 1,2 млн ₽.'
+    legal: {
+      count: 4,
+      issues: [
+        'Контракт №42 истёк — допсоглашение не подписано.',
+        'Разногласия по условиям сервисного обслуживания Ласточек.',
+        'Не закрыт претензионный акт за недопоставку 2024Q2.',
+        'Требуется согласовать новую редакцию ТЗ с заказчиком.'
+      ]
     },
-    {
-      title: 'Финансы и экономика',
-      detail: 'Фактические затраты по программе превысили план на 8,7%; экономия от импортозамещения покрыла лишь 40% перерасхода.'
+    finance: {
+      count: 5,
+      issues: [
+        'Перерасход бюджета на 8,7% по итогам Q3.',
+        'Нет утверждения лимитов на импортозамещение по позициям №17-19.',
+        'Замедлена оплата поставок: задержка на 28 рабочих дней.',
+        'Средства на страхование критичных грузов не заложены.',
+        'Экономия по проекту покрывает лишь 40% перерасхода.'
+      ]
     },
-    {
-      title: 'Сертификация и стандарты',
-      detail: 'Документация для ОТК-05 не соответствует ГОСТ Р 55513, испытательный стенд не готов к инспекции Ростехнадзора.'
+    cert: {
+      count: 3,
+      issues: [
+        'Документация ОТК-05 не соответствует ГОСТ Р 55513.',
+        'Сертификация HVAC-модуля перенесена на февраль 2026.',
+        'Не готов стенд для инспекции Ростехнадзора.'
+      ]
     },
-    {
-      title: 'Взаимодействие сторон проекта',
-      detail: 'Совместные ревью с головным институтом сдвинуты на квартал; нет единого канала обмена конструкторскими изменениями.'
+    interaction: {
+      count: 4,
+      issues: [
+        'Совместные ревью с головным институтом сдвинуты на квартал.',
+        'Нет единого канала обмена конструкторскими изменениями.',
+        'Отсутствует weekly по «санкционным» поставкам.',
+        'Утрачен контроль за SLA на доработку схем.'
+      ]
     },
-    {
-      title: 'Эксплуатационные риски',
-      detail: 'Сервисные данные показывают рост аварийности компрессоров на 15%; требуется корректировка плана ТО-2.'
+    operation: {
+      count: 5,
+      issues: [
+        'Аварийность компрессоров в эксплуатации выросла на 15%.',
+        'ТО-2 не учитывает новые требования к фильтрам.',
+        'Нет стандартизированных карт технических процедур.',
+        'Ответственность за анализ эксплуатационных данных размазана.',
+        'Не закрыт вопрос по складу запчастей для депо «Петушки».'
+      ]
     },
-    {
-      title: 'Санкционные и импортные риски',
-      detail: 'Дистрибьютор гидравлики попал в санкционный список; готовность отечественного аналога — 60%.'
+    sanctions: {
+      count: 3,
+      issues: [
+        'Дистрибьютор гидравлики попал в санкционный список.',
+        'Отечественный аналог компрессора готов на 60%.',
+        'Нет решения по замене импортного ПО для диагностики.'
+      ]
     },
-    {
-      title: 'Управленческие риски',
-      detail: 'Ключевые KPI проектного офиса выполняются на 72%; запас по графику — 12 рабочих дней.'
+    management: {
+      count: 4,
+      issues: [
+        'KPI проектного офиса выполняются на 72%.',
+        'Запас по графику — 12 рабочих дней, требуется резервный план.',
+        'Нет прозрачного репорта руководству по финальным узлам.',
+        'Бэклог критичных задач превышает доступные ресурсы.'
+      ]
     }
-  ];
-  focusEl.innerHTML = items.map(item => `
-    <li>
-      <strong>${escapeHTML(item.title)}</strong><br/>
-      <span style="opacity:0.78;">${escapeHTML(item.detail)}</span>
-    </li>
-  `).join('');
+  };
+
+  cards.forEach(card => {
+    const key = card.getAttribute('data-focus');
+    const info = data[key];
+    if(!info) return;
+    const countEl = card.querySelector('.kpi-value');
+    const listEl = card.querySelector('.focus-list');
+    if(countEl){ countEl.textContent = info.count.toString(); }
+    if(listEl){
+      listEl.innerHTML = info.issues.map(issue => `<li><span>${escapeHTML(issue)}</span></li>`).join('');
+    }
+  });
 }
 async function loadVisitsData(force = false){
   if(visitsInitialized && !force){
