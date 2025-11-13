@@ -74,8 +74,13 @@
   .preview-close.light{background:rgba(0,0,0,0.08);color:#111827}
   .preview-frame{flex:1;border:none;border-radius:12px;margin:0}
   .preview-link{color:var(--c-primary);text-decoration:underline dashed;cursor:pointer;text-underline-offset:3px}
+  .focus-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .focus-card{background:var(--c-card);border-radius:16px;box-shadow:0 2px 8px rgba(42,48,67,.08);border:1px solid rgba(42,48,67,.06);padding:20px;display:flex;flex-direction:column;gap:12px}
+  .focus-header{display:flex;flex-direction:column;gap:6px}
+  .focus-title{font-size:16px;font-weight:600;color:var(--c-text);opacity:0.88}
+  .focus-count{font-size:36px;font-weight:700;color:var(--c-primary)}
   .focus-list{list-style:decimal;padding-left:18px;margin:0;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--c-text);opacity:0.88}
-  .focus-list li strong{font-size:15px;color:var(--c-text);opacity:1}
+  .focus-list li span{opacity:0.88}
 </style>
 </head>
 <body>
@@ -318,74 +323,74 @@
 
     <!-- Tab Content: Зона внимания -->
     <div id="tab-focus" class="tab-content">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;">
-        <div class="card" data-focus="okr">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>ОКР и инженерия</span>
-            <span class="kpi-value" id="focus-okr-count">0</span>
+      <div class="focus-grid">
+        <div class="focus-card" data-focus="okr">
+          <div class="focus-header">
+            <div class="focus-title">ОКР и инженерия</div>
+            <div class="focus-count" id="focus-okr-count">0</div>
           </div>
           <ul id="focus-okr-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="production">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Производство и качество</span>
-            <span class="kpi-value" id="focus-production-count">0</span>
+        <div class="focus-card" data-focus="production">
+          <div class="focus-header">
+            <div class="focus-title">Производство и качество</div>
+            <div class="focus-count" id="focus-production-count">0</div>
           </div>
           <ul id="focus-production-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="supply">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Поставки и логистика</span>
-            <span class="kpi-value" id="focus-supply-count">0</span>
+        <div class="focus-card" data-focus="supply">
+          <div class="focus-header">
+            <div class="focus-title">Поставки и логистика</div>
+            <div class="focus-count" id="focus-supply-count">0</div>
           </div>
           <ul id="focus-supply-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="legal">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Юридические и договорные вопросы</span>
-            <span class="kpi-value" id="focus-legal-count">0</span>
+        <div class="focus-card" data-focus="legal">
+          <div class="focus-header">
+            <div class="focus-title">Юридические и договорные вопросы</div>
+            <div class="focus-count" id="focus-legal-count">0</div>
           </div>
           <ul id="focus-legal-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="finance">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Финансы и экономика</span>
-            <span class="kpi-value" id="focus-finance-count">0</span>
+        <div class="focus-card" data-focus="finance">
+          <div class="focus-header">
+            <div class="focus-title">Финансы и экономика</div>
+            <div class="focus-count" id="focus-finance-count">0</div>
           </div>
           <ul id="focus-finance-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="cert">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Сертификация и стандарты</span>
-            <span class="kpi-value" id="focus-cert-count">0</span>
+        <div class="focus-card" data-focus="cert">
+          <div class="focus-header">
+            <div class="focus-title">Сертификация и стандарты</div>
+            <div class="focus-count" id="focus-cert-count">0</div>
           </div>
           <ul id="focus-cert-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="interaction">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Взаимодействие сторон проекта</span>
-            <span class="kpi-value" id="focus-interaction-count">0</span>
+        <div class="focus-card" data-focus="interaction">
+          <div class="focus-header">
+            <div class="focus-title">Взаимодействие сторон проекта</div>
+            <div class="focus-count" id="focus-interaction-count">0</div>
           </div>
           <ul id="focus-interaction-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="operation">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Эксплуатационные риски</span>
-            <span class="kpi-value" id="focus-operation-count">0</span>
+        <div class="focus-card" data-focus="operation">
+          <div class="focus-header">
+            <div class="focus-title">Эксплуатационные риски</div>
+            <div class="focus-count" id="focus-operation-count">0</div>
           </div>
           <ul id="focus-operation-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="sanctions">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Санкционные и импортные риски</span>
-            <span class="kpi-value" id="focus-sanctions-count">0</span>
+        <div class="focus-card" data-focus="sanctions">
+          <div class="focus-header">
+            <div class="focus-title">Санкционные и импортные риски</div>
+            <div class="focus-count" id="focus-sanctions-count">0</div>
           </div>
           <ul id="focus-sanctions-list" class="focus-list"></ul>
         </div>
-        <div class="card" data-focus="management">
-          <div class="chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Управленческие риски</span>
-            <span class="kpi-value" id="focus-management-count">0</span>
+        <div class="focus-card" data-focus="management">
+          <div class="focus-header">
+            <div class="focus-title">Управленческие риски</div>
+            <div class="focus-count" id="focus-management-count">0</div>
           </div>
           <ul id="focus-management-list" class="focus-list"></ul>
         </div>
@@ -840,7 +845,7 @@ function visitsBySystemChart(){
   }));
   const data = source.length ? source : [{ value: 0, name: 'Нет данных', itemStyle: { color: '#E5E7EB' } }];
   chart.setOption({
-    tooltip: {
+    tooltip: { 
       trigger: 'item',
       formatter: '{b}: {c} ({d}%)'
     },
@@ -935,11 +940,11 @@ function initFailuresChart(){
       type: 'bar',
       data: values.map((value, idx) => ({
         value,
-    itemStyle: { 
+        itemStyle: {
           color: idx === 3 ? '#F34C3F' : (['#038681','#92DAD9','#135457'][idx] || '#038681')
-        },
-        label: {
-          show: true,
+      },
+      label: {
+        show: true,
           position: 'top',
           formatter: value.toFixed(2),
           fontFamily: 'Moscow Sans, sans-serif',
@@ -956,7 +961,7 @@ function initFailuresChart(){
 function populateFocusList(){
   const focusEl = document.getElementById('focusList');
   if(!focusEl) return;
-  const cards = document.querySelectorAll('[data-focus]');
+  const cards = document.querySelectorAll('.focus-card[data-focus]');
   const data = {
     okr: {
       count: 7,
@@ -1057,7 +1062,7 @@ function populateFocusList(){
     const key = card.getAttribute('data-focus');
     const info = data[key];
     if(!info) return;
-    const countEl = card.querySelector('.kpi-value');
+    const countEl = card.querySelector('.focus-count');
     const listEl = card.querySelector('.focus-list');
     if(countEl){ countEl.textContent = info.count.toString(); }
     if(listEl){
