@@ -465,7 +465,20 @@ function visitsCalendarChart(){
   if(!chart) return;
 
   const rawEntries = Array.isArray(VISITS_DATA?.calendar) ? VISITS_DATA.calendar : [];
-  const validEntries = rawEntries.filter(item => item && item.date);
+  const validEntries = rawEntries
+    .map(item => {
+      if(!item) return null;
+      const original = item.date;
+      let dateStr = '';
+      if(original instanceof Date){
+        dateStr = toISODateString(original);
+      }else if(typeof original === 'string'){
+        dateStr = original.slice(0,10);
+      }
+      if(!dateStr) return null;
+      return { ...item, date: dateStr };
+    })
+    .filter(Boolean);
   const range = VISITS_DATA?.calendar_range || {};
   const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 
