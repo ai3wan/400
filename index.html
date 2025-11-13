@@ -68,6 +68,13 @@
   .tab-content.active{display:block}
   .calendar-legend{display:flex;gap:20px;margin-top:12px;font-size:13px;color:rgba(42,48,67,.8);flex-wrap:wrap}
   .calendar-legend span{display:flex;align-items:center;gap:6px}
+  .preview-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.85);display:none;align-items:center;justify-content:center;z-index:99998;padding:40px}
+  .preview-content{position:relative;background:#0b1218;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.4);width:90%;height:90%;display:flex;flex-direction:column}
+  .preview-content.light{background:#fff}
+  .preview-close{position:absolute;top:12px;right:12px;border:none;background:rgba(0,0,0,0.35);color:#fff;font-size:24px;line-height:1;padding:4px 10px;border-radius:999px;cursor:pointer}
+  .preview-close.light{background:rgba(0,0,0,0.08);color:#111827}
+  .preview-frame{flex:1;border:none;border-radius:12px;margin:0}
+  .preview-link{color:var(--c-primary);text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -82,6 +89,13 @@
         <button id="authReset" style="">Сброс</button>
       </div>
       <div id="authError" style="color:var(--c-red);font-size:12px;margin-top:8px;display:none;">Неверный пароль</div>
+    </div>
+  </div>
+
+  <div id="previewOverlay" class="preview-overlay">
+    <div class="preview-content" id="previewContent">
+      <button id="previewClose" class="preview-close">×</button>
+      <iframe id="previewFrame" class="preview-frame" src="about:blank" title="Файл"></iframe>
     </div>
   </div>
 
@@ -313,6 +327,7 @@
 // --- Simple front-only auth gate ---
 const AUTH_KEY = 'vsm400_auth_ok';
 const AUTH_PASS = 'vsm400';
+const DEFAULT_PREVIEW_FILE = '/TZ/tz_tad650.pdf';
 function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('appContainer').style.display='';}
 function showAuth(){document.getElementById('appContainer').style.display='none';document.getElementById('authOverlay').style.display='flex';}
 function initAuth(){
@@ -353,6 +368,41 @@ function escapeHTML(value){
     .replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#039;');
+}
+
+function openPreview(url){
+  const overlay = document.getElementById('previewOverlay');
+  const frame = document.getElementById('previewFrame');
+  const content = document.getElementById('previewContent');
+  const closeBtn = document.getElementById('previewClose');
+  if(!overlay || !frame || !content || !closeBtn) return;
+  const fileUrl = url || DEFAULT_PREVIEW_FILE;
+  frame.src = fileUrl;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  content.classList.toggle('light', !isDark);
+  closeBtn.classList.toggle('light', !isDark);
+  overlay.style.display = 'flex';
+}
+
+function closePreview(){
+  const overlay = document.getElementById('previewOverlay');
+  const frame = document.getElementById('previewFrame');
+  if(overlay){ overlay.style.display = 'none'; }
+  if(frame){ frame.src = 'about:blank'; }
+}
+
+function attachPreviewHandlers(root){
+  const scope = root || document;
+  const links = scope.querySelectorAll('.preview-link');
+  links.forEach(link => {
+    if(link.dataset.previewBound === '1') return;
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const href = link.getAttribute('data-preview') || DEFAULT_PREVIEW_FILE;
+      openPreview(href);
+    });
+    link.dataset.previewBound = '1';
+  });
 }
 
 function formatDate(value){
@@ -1084,9 +1134,12 @@ async function loadPhaseDetails(phase, fullPhaseName){
     const html=rows.map(r=>{
       const dt=(r.end_plan_date||'').slice(0,10)||'—';
       const progress=Number(r.current_progress||0);
-      return `<tr><td>${(r.system_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.supplier_name||'—').replace(/\"/g,'&quot;')}</td><td>${dt}</td><td>${progress}%</td></tr>`;
+      const systemName = escapeHTML(r.system_name || '—');
+      const supplierName = escapeHTML(r.supplier_name || '—');
+      return `<tr><td><a href="#" class="preview-link" data-preview="${DEFAULT_PREVIEW_FILE}">${systemName}</a></td><td>${supplierName}</td><td>${dt}</td><td>${progress}%</td></tr>`;
     }).join('');
     body.innerHTML=html||'<tr><td colspan="4" style="opacity:.6;">Нет данных</td></tr>';
+    attachPreviewHandlers(body);
     detailsEl.style.display='block';
   }catch(e){console.error('loadPhaseDetails error:',e);}
 }
@@ -1112,10 +1165,14 @@ async function loadRiskSoon(){
       const rowStyle = isPastMonth ? ' style="background: rgba(243,76,63,0.10);"' : '';
       const dtDisp = (dtStr||'').slice(0,10) || '—';
       const progress=Number(r.current_progress||0);
-      return `<tr${rowStyle}><td>${(r.system_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.supplier_name||'—').replace(/\"/g,'&quot;')}</td><td>${(r.phase||'—').replace(/\"/g,'&quot;')}</td><td>${dtDisp}</td><td>${progress}%</td></tr>`;
+      const systemName = escapeHTML(r.system_name || '—');
+      const supplierName = escapeHTML(r.supplier_name || '—');
+      const phaseName = escapeHTML(r.phase || '—');
+      return `<tr${rowStyle}><td><a href="#" class="preview-link" data-preview="${DEFAULT_PREVIEW_FILE}">${systemName}</a></td><td>${supplierName}</td><td>${phaseName}</td><td>${dtDisp}</td><td>${progress}%</td></tr>`;
     }).join('');
     const moreRow = (!RISK_EXPANDED && rows.length>5) ? '<tr><td colspan="5" style="text-align:center; opacity:.6;">...</td></tr>' : '';
     body.innerHTML = html + moreRow || '<tr><td colspan="5" style="opacity:.6;">Нет данных</td></tr>';
+    attachPreviewHandlers(body);
     const btn = document.getElementById('okrRiskToggle');
     if(btn){ btn.textContent = RISK_EXPANDED ? '▾' : '▸'; }
     // render company bar chart
@@ -1432,6 +1489,14 @@ document.getElementById('refreshBtn').onclick=async()=>{
 };
 const closeBtn=document.getElementById('okrPhaseDetailsClose');
 if(closeBtn){ closeBtn.onclick=()=>{ const el=document.getElementById('okrPhaseDetails'); if(el){ el.style.display='none'; } }; }
+const previewCloseBtn = document.getElementById('previewClose');
+if(previewCloseBtn){ previewCloseBtn.onclick = closePreview; }
+const previewOverlayEl = document.getElementById('previewOverlay');
+if(previewOverlayEl){
+  previewOverlayEl.addEventListener('click', (event) => {
+    if(event.target === previewOverlayEl){ closePreview(); }
+  });
+}
 initTabs();
 initAuth();
 if(localStorage.getItem(AUTH_KEY)==='1'){init();initFailuresChart();}
