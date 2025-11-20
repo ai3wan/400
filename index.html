@@ -82,6 +82,37 @@
   .focus-card .kpi-label{font-size:12px;color:var(--c-text);opacity:0.82;text-transform:uppercase;letter-spacing:.5px}
   .focus-list{list-style:decimal;padding-left:16px;margin:0;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--c-text);opacity:0.85}
   .focus-list li span{opacity:0.85}
+  .monitor-grid{display:grid;gap:20px}
+  .monitor-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+  .monitor-card{border-radius:18px;padding:20px;background:var(--c-card);box-shadow:0 6px 18px rgba(42,48,67,.08);border:1px solid rgba(42,48,67,.08)}
+  .monitor-score-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .monitor-score-value{font-size:48px;font-weight:800;color:var(--c-primary)}
+  .monitor-stars{font-size:26px;letter-spacing:4px;color:#d6dee0}
+  .monitor-stars .filled{color:#F5A524}
+  .monitor-products{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .monitor-product{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px;border:1px solid rgba(42,48,67,.08);box-shadow:0 4px 12px rgba(42,48,67,.06)}
+  .monitor-product-icon{font-size:28px}
+  .monitor-product-status{font-size:13px;font-weight:600;color:var(--c-primary)}
+  .monitor-traffic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .monitor-traffic-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:rgba(3,134,129,.06);border:1px solid rgba(3,134,129,.15)}
+  .monitor-traffic-dot{width:14px;height:14px;border-radius:50%}
+  .monitor-traffic-dot.green{background:#2ECC71}
+  .monitor-traffic-dot.yellow{background:#F5C04E}
+  .monitor-traffic-dot.red{background:#F34C3F}
+  .monitor-traffic-dot.orange{background:#FF884D}
+  .monitor-progress-list{display:flex;flex-direction:column;gap:14px}
+  .monitor-progress-head{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .monitor-progress-track{height:10px;border-radius:999px;background:rgba(42,48,67,.08);overflow:hidden}
+  .monitor-progress-bar{height:100%;border-radius:999px;transition:width .4s ease}
+  .monitor-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:24px}
+  .monitor-risk-map{height:360px}
+  .monitor-radar{height:360px}
+  .monitor-timeline{display:flex;flex-direction:column;gap:14px;margin-top:10px;padding-left:20px;border-left:2px dashed rgba(42,48,67,.2)}
+  .monitor-timeline-item{position:relative;padding-left:12px}
+  .monitor-timeline-item::before{content:'●';position:absolute;left:-19px;top:-2px;color:var(--c-accent);font-size:16px}
+  .monitor-text-block{font-size:14px;line-height:1.5;color:rgba(42,48,67,.9)}
+  .monitor-key-risks{margin-top:12px;padding-left:18px}
+  .monitor-key-risks li{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -121,6 +152,7 @@
       <button class="tab active" data-tab="okr">Статус ОКР</button>
       <button class="tab" data-tab="visits">Выезды</button>
       <button class="tab" data-tab="failures">Отказность</button>
+      <button class="tab" data-tab="monitoring">Мониторинг</button>
       <button class="tab" data-tab="focus">Зона внимания</button>
     </div>
 
@@ -322,6 +354,132 @@
     </div>
     <!-- End Tab Content: Отказность -->
 
+    <!-- Tab Content: Мониторинг -->
+    <div id="tab-monitoring" class="tab-content">
+      <div class="monitor-grid">
+        <div class="monitor-top">
+          <div class="monitor-card">
+            <div class="chart-title">Supplier Maturity Score</div>
+            <div class="monitor-score-head">
+              <div class="monitor-score-value" id="monitorScoreValue">3.0</div>
+              <div style="font-size:14px;color:rgba(42,48,67,.7);">из 5★</div>
+            </div>
+            <div id="monitorStars" class="monitor-stars" aria-label="Оценка зрелости"></div>
+            <p class="monitor-text-block" style="margin-top:14px;">Средняя зрелость. Часть процессов требует усиления контроля и стандартизации.</p>
+          </div>
+          <div class="monitor-card">
+            <div class="chart-title">Общая оценка поставщика</div>
+            <p class="monitor-text-block">
+              Средняя готовность. Производственные мощности и испытательная база — сильная сторона. Основные риски: сертификация двигателя, шум вентилятора, отсутствие образца воздуховода и слабая культура профилактической модернизации.
+            </p>
+            <div class="chart-title" style="margin-top:20px;font-size:16px;">Ключевые риски</div>
+            <ul class="monitor-key-risks">
+              <li>Сертификация двигателя (ТР ТС 002/2011) — критичный риск</li>
+              <li>Повышенный шум вентилятора — функциональный риск</li>
+              <li>Нет образца воздуховода — риски геометрии и вибростойкости</li>
+              <li>Исторические конструктивные дефекты — риск повторения</li>
+              <li>Отсутствие ремонтных стендов — риск сервиса</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="monitor-products">
+          <div class="monitor-product card">
+            <div class="monitor-product-icon">🌀</div>
+            <div class="chart-title" style="margin-bottom:6px;font-size:16px;">Вентилятор охлаждения ТЭД</div>
+            <div class="monitor-text-block">Производитель подтвердил готовность опытной партии.</div>
+            <div class="monitor-product-status">Статус: Опытный образец</div>
+          </div>
+          <div class="monitor-product card">
+            <div class="monitor-product-icon">📦</div>
+            <div class="chart-title" style="margin-bottom:6px;font-size:16px;">Центральный воздуховод</div>
+            <div class="monitor-text-block">Ожидается предоставление полного комплекта КД.</div>
+            <div class="monitor-product-status">Статус: КД в наличии</div>
+          </div>
+          <div class="monitor-product card">
+            <div class="monitor-product-icon">🧊</div>
+            <div class="chart-title" style="margin-bottom:6px;font-size:16px;">Инерционный фильтр</div>
+            <div class="monitor-text-block">Проходит ресурсные испытания на стенде.</div>
+            <div class="monitor-product-status">Статус: Изделие проходит испытания</div>
+          </div>
+        </div>
+
+        <div class="card monitor-card">
+          <div class="chart-title">Индикаторы состояния (Traffic-Light)</div>
+          <div class="monitor-traffic-grid">
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot green"></span><span>Производственные мощности</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot green"></span><span>Испытательная база</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot red"></span><span>Сертификация двигателя</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot yellow"></span><span>Шум вентилятора</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot yellow"></span><span>Документация (ТД/КД/ПМИ)</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot red"></span><span>Готовность воздуховода</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot yellow"></span><span>Надёжность (история отказов)</span></div>
+            <div class="monitor-traffic-item"><span class="monitor-traffic-dot orange"></span><span>Ремонтопригодность</span></div>
+          </div>
+        </div>
+
+        <div class="card monitor-card">
+          <div class="chart-title">Индикаторы готовности</div>
+          <div class="monitor-progress-list">
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Производство</span><span class="monitor-progress-value">90%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="90"></div></div>
+            </div>
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Испытания</span><span class="monitor-progress-value">85%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="85"></div></div>
+            </div>
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Документация</span><span class="monitor-progress-value">60%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="60"></div></div>
+            </div>
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Сертификация</span><span class="monitor-progress-value">40%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="40"></div></div>
+            </div>
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Надёжность</span><span class="monitor-progress-value">70%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="70"></div></div>
+            </div>
+            <div class="monitor-progress-item">
+              <div class="monitor-progress-head"><span>Ремонтная готовность</span><span class="monitor-progress-value">50%</span></div>
+              <div class="monitor-progress-track"><div class="monitor-progress-bar" data-value="50"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="monitor-charts">
+          <div class="card monitor-card">
+            <div class="chart-title">Профиль поставщика</div>
+            <div id="monitorRadar" class="monitor-radar"></div>
+          </div>
+          <div class="card monitor-card">
+            <div class="chart-title">Матрица рисков</div>
+            <div id="monitorRiskMatrix" class="monitor-risk-map"></div>
+          </div>
+        </div>
+
+        <div class="card monitor-card">
+          <div class="chart-title">Таймлайн критичных событий</div>
+          <div class="monitor-timeline">
+            <div class="monitor-timeline-item">
+              <div style="font-weight:600;">Решение по сертификации АЖ160</div>
+              <div style="font-size:13px;color:rgba(42,48,67,.7);">до 25.11.25</div>
+            </div>
+            <div class="monitor-timeline-item">
+              <div style="font-weight:600;">Появление опытного воздуховода</div>
+              <div style="font-size:13px;color:rgba(42,48,67,.7);">дата неизвестна / TBD</div>
+            </div>
+            <div class="monitor-timeline-item">
+              <div style="font-weight:600;">Готовность ремонтной базы</div>
+              <div style="font-size:13px;color:rgba(42,48,67,.7);">после внедрения стендов / TBD</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- End Tab Content: Мониторинг -->
+
     <!-- Tab Content: Зона внимания -->
     <div id="tab-focus" class="tab-content">
       <div class="focus-grid">
@@ -438,7 +596,32 @@ const monthFormatter = new Intl.DateTimeFormat('ru-RU', { month: 'short', year: 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' });
 let VISITS_DATA = null;
 let visitsInitialized = false;
+let monitoringInitialized = false;
 const visitsPalette = ['#038681','#92DAD9','#135457','#2A3043','#F3DCE7','#F34C3F','#2A3043'];
+const MONITORING_DATA = {
+  score: 3,
+  maxScore: 5,
+  radar: {
+    indicators: [
+      { name: 'Производство', max: 100 },
+      { name: 'Испытания', max: 100 },
+      { name: 'Документация', max: 100 },
+      { name: 'Надёжность', max: 100 },
+      { name: 'Качество прошлых изделий', max: 100 },
+      { name: 'Ремонтопригодность', max: 100 },
+      { name: 'Сертификация', max: 100 },
+      { name: 'Гарантийная культура', max: 100 }
+    ],
+    values: [90, 85, 60, 70, 80, 55, 40, 65]
+  },
+  risks: [
+    { name: 'Сертификация двигателя', probability: 'высокая', impact: 'высокое', color: '#F34C3F' },
+    { name: 'Шум вентилятора', probability: 'средняя', impact: 'среднее', color: '#F5C04E' },
+    { name: 'Отсутствие воздуховода', probability: 'высокая', impact: 'среднее', color: '#F55F4E' },
+    { name: 'Исторические дефекты', probability: 'средняя', impact: 'высокое', color: '#F39C12' },
+    { name: 'Отсутствие ремонтной базы', probability: 'средняя', impact: 'высокое', color: '#FF884D' }
+  ]
+};
 
 function formatNumber(value){
   const num = Number(value || 0);
@@ -577,6 +760,124 @@ function getChartInstance(domId){
     dom.dataset.resizeBound = '1';
   }
   return instance;
+}
+
+function renderMonitoringStars(){
+  const container = document.getElementById('monitorStars');
+  const scoreEl = document.getElementById('monitorScoreValue');
+  if(!container) return;
+  const score = MONITORING_DATA.score || 0;
+  const max = MONITORING_DATA.maxScore || 5;
+  if(scoreEl){ scoreEl.textContent = score.toFixed(1); }
+  const stars = [];
+  for(let i=1;i<=max;i++){
+    const filled = i <= Math.round(score);
+    stars.push(`<span class="${filled ? 'filled' : ''}">★</span>`);
+  }
+  container.innerHTML = stars.join('');
+}
+
+function renderMonitoringProgressBars(){
+  document.querySelectorAll('.monitor-progress-bar').forEach(bar=>{
+    const value = Math.max(0, Math.min(100, Number(bar.dataset.value) || 0));
+    bar.style.width = `${value}%`;
+    let color = '#038681';
+    if(value < 50){
+      color = '#F34C3F';
+    }else if(value < 75){
+      color = '#F5C04E';
+    }
+    bar.style.background = color;
+    const label = bar.closest('.monitor-progress-item')?.querySelector('.monitor-progress-value');
+    if(label){ label.textContent = `${value}%`; }
+  });
+}
+
+function initMonitoringRadar(){
+  const chart = getChartInstance('monitorRadar');
+  if(!chart) return;
+  const indicators = MONITORING_DATA.radar.indicators;
+  const values = MONITORING_DATA.radar.values;
+  chart.setOption({
+    radar: {
+      indicator: indicators,
+      radius: '70%',
+      splitNumber: 4,
+      axisName: { fontFamily: 'Moscow Sans, sans-serif', color: 'rgba(42,48,67,.8)' },
+      splitLine: { lineStyle: { color: 'rgba(3,134,129,0.4)' } },
+      splitArea: { areaStyle: { color: ['rgba(146,218,217,0.15)','rgba(146,218,217,0.08)'] } },
+      axisLine: { lineStyle: { color: 'rgba(3,134,129,0.4)' } }
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: values,
+        areaStyle: { color: 'rgba(3,134,129,0.35)' },
+        lineStyle: { color: '#038681', width: 2 },
+        symbol: 'circle',
+        symbolSize: 4,
+        itemStyle: { color: '#038681' }
+      }]
+    }]
+  }, true);
+}
+
+function initMonitoringRiskMatrix(){
+  const chart = getChartInstance('monitorRiskMatrix');
+  if(!chart) return;
+  const probAxis = ['низкая','средняя','высокая'];
+  const impactAxis = ['низкое','среднее','высокое'];
+  const data = MONITORING_DATA.risks.map(r => ({
+    name: r.name,
+    value: [r.probability, r.impact],
+    itemStyle: { color: r.color || '#F34C3F' }
+  }));
+  chart.setOption({
+    tooltip: {
+      formatter: (params) => `${params.data.name}<br/>Вероятность: ${params.data.value[0]}<br/>Влияние: ${params.data.value[1]}`
+    },
+    grid: { left: 80, right: 20, top: 40, bottom: 60 },
+    xAxis: {
+      type: 'category',
+      name: 'Вероятность',
+      nameLocation: 'middle',
+      nameGap: 30,
+      data: probAxis,
+      axisLabel: { fontFamily: 'Moscow Sans, sans-serif' }
+    },
+    yAxis: {
+      type: 'category',
+      name: 'Влияние',
+      nameLocation: 'middle',
+      nameGap: 40,
+      data: impactAxis,
+      axisLabel: { fontFamily: 'Moscow Sans, sans-serif' }
+    },
+    series: [{
+      type: 'scatter',
+      symbolSize: 48,
+      emphasis: { focus: 'series' },
+      label: { show: true, formatter: params => params.data.name.split(' ')[0], color: '#fff', fontSize: 10 },
+      data
+    }]
+  }, true);
+}
+
+function initMonitoringTab(force=false){
+  const container = document.getElementById('tab-monitoring');
+  if(!container) return;
+  if(monitoringInitialized && !force){
+    ['monitorRadar','monitorRiskMatrix'].forEach(id=>{
+      const inst = echarts.getInstanceByDom(document.getElementById(id));
+      if(inst){ inst.resize(); }
+    });
+    return;
+  }
+  monitoringInitialized = true;
+  renderMonitoringStars();
+  renderMonitoringProgressBars();
+  initMonitoringRadar();
+  initMonitoringRiskMatrix();
 }
 
 function setVisitsKPI(kpi){
@@ -1650,6 +1951,8 @@ function initTabs(){
             const inst = el ? echarts.getInstanceByDom(el) : null;
             if(inst) inst.resize();
           }, 100);
+        }else if(tabName === 'monitoring'){
+          setTimeout(() => initMonitoringTab(), 100);
         }else if(tabName === 'focus'){
           populateFocusList();
         }
