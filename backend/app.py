@@ -895,7 +895,7 @@ async def visits_summary() -> Dict[str, Any]:
             """
             SELECT
                 date_trunc('month', start_date)::date AS month_start,
-                COUNT(*) AS count
+                COUNT(DISTINCT start_date::date) AS count
             FROM company_audit
             WHERE start_date IS NOT NULL
             GROUP BY date_trunc('month', start_date)
