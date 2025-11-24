@@ -1055,7 +1055,44 @@ function visitsMonthlyChart(){
   if(!chart) return;
   const source = VISITS_DATA?.monthly_counts || [];
   const categories = source.map(item => formatMonthLabel(item.month));
-  const values = source.map(item => Number(item.count) || 0);
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthNumeric = Number(currentMonthKey.replace('-', ''));
+  const pastColor = '#038681';
+  const futureColor = '#92DAD9';
+  const barData = source.map((item) => {
+    const value = Number(item.count) || 0;
+    const itemMonthNumeric = Number(String(item.month || '').replace('-', ''));
+    const isPastOrCurrent = Number.isFinite(itemMonthNumeric) && Number.isFinite(currentMonthNumeric)
+      ? itemMonthNumeric <= currentMonthNumeric
+      : true;
+    return {
+      value,
+      itemStyle: {
+        color: isPastOrCurrent ? pastColor : futureColor,
+        borderRadius: [6, 6, 0, 0]
+      }
+    };
+  });
+  const currentLabel = formatMonthLabel(currentMonthKey);
+  const markLineData = categories.includes(currentLabel)
+    ? [{
+        xAxis: currentLabel,
+        lineStyle: {
+          color: '#F34C3F',
+          width: 2,
+          type: 'dashed'
+        },
+        label: {
+          formatter: 'Текущий месяц',
+          fontFamily: 'Moscow Sans, sans-serif',
+          color: 'var(--c-text)',
+          padding: [4, 6],
+          backgroundColor: 'rgba(255,255,255,0.8)',
+          borderRadius: 6
+        }
+      }]
+    : [];
   chart.setOption({
     tooltip: {
       trigger: 'axis',
@@ -1083,16 +1120,17 @@ function visitsMonthlyChart(){
     series: [{
       name: 'Выезды',
       type: 'bar',
-      data: values,
-        itemStyle: {
-        color: '#038681',
-        borderRadius: [6,6,0,0]
-      },
+      data: barData,
       label: {
         show: true,
         position: 'top',
         formatter: ({ value }) => formatNumber(value)
-      }
+      },
+      markLine: markLineData.length ? {
+        symbol: 'none',
+        data: markLineData,
+        animation: false
+      } : undefined
     }]
   }, true);
 }
