@@ -68,6 +68,8 @@
   .tab-content.active{display:block}
   .calendar-legend{display:flex;gap:20px;margin-top:12px;font-size:13px;color:rgba(42,48,67,.8);flex-wrap:wrap}
   .calendar-legend span{display:flex;align-items:center;gap:6px}
+  .chart-legend{display:flex;gap:18px;margin-top:10px;font-size:13px;color:rgba(42,48,67,.8);flex-wrap:wrap}
+  .chart-legend span{display:flex;align-items:center;gap:6px}
   .preview-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.85);display:none;align-items:center;justify-content:center;z-index:99998;padding:40px}
   .preview-content{position:relative;background:#0b1218;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.4);width:90%;height:90%;display:flex;flex-direction:column}
   .preview-close{position:absolute;top:12px;right:12px;border:none;background:rgba(0,0,0,0.35);color:#fff;font-size:24px;line-height:1;padding:4px 10px;border-radius:999px;cursor:pointer}
@@ -323,6 +325,10 @@
         <div class="card" style="margin-top:24px;">
           <div class="chart-title">Динамика по месяцам</div>
           <div id="visitsMonthly" class="chart-container" style="height:320px;"></div>
+          <div class="chart-legend visits-legend">
+            <span><span class="legend-dot" style="background:#F34C3F"></span>Состоявшиеся</span>
+            <span><span class="legend-dot" style="background:#038681"></span>Планируемые</span>
+          </div>
         </div>
 
         <div class="card" style="margin-top:24px;">
@@ -1059,8 +1065,8 @@ function visitsMonthlyChart(){
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const currentMonthNumeric = Number(currentMonthKey.replace('-', ''));
-  const pastColor = '#038681';
-  const futureColor = '#92DAD9';
+  const pastColor = '#F34C3F';
+  const futureColor = '#038681';
   const barData = source.map((item) => {
     const value = Number(item.count) || 0;
     const itemMonthNumeric = Number(String(item.month || '').replace('-', ''));
@@ -1109,7 +1115,7 @@ function visitsMonthlyChart(){
       type: 'category',
       data: categories,
       axisLabel: {
-        rotate: categories.length > 6 ? 45 : 0,
+        rotate: 0,
         fontFamily: 'Moscow Sans, sans-serif'
       }
     },
