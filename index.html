@@ -109,7 +109,8 @@
   .monitor-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:24px}
   .monitor-risk-map{height:360px}
   .monitor-radar{height:360px}
-  .monitor-supplier-radars{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:24px}
+  .monitor-supplier-radars{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:20px;margin-top:24px}
+  @media (max-width:900px){.monitor-supplier-radars{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}}
   .supplier-radar-chart{height:300px}
   .monitor-timeline{display:flex;flex-direction:column;gap:14px;margin-top:10px;padding-left:20px;border-left:2px dashed rgba(42,48,67,.2)}
   .monitor-timeline-item{position:relative;padding-left:12px}
