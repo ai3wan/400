@@ -109,6 +109,8 @@
   .monitor-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:24px}
   .monitor-risk-map{height:360px}
   .monitor-radar{height:360px}
+  .monitor-supplier-radars{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;margin-top:24px}
+  .supplier-radar-chart{height:300px}
   .monitor-timeline{display:flex;flex-direction:column;gap:14px;margin-top:10px;padding-left:20px;border-left:2px dashed rgba(42,48,67,.2)}
   .monitor-timeline-item{position:relative;padding-left:12px}
   .monitor-timeline-item::before{content:'●';position:absolute;left:-19px;top:-2px;color:var(--c-accent);font-size:16px}
@@ -483,6 +485,25 @@
             </div>
           </div>
         </div>
+
+        <div class="monitor-supplier-radars">
+          <div class="card monitor-card">
+            <div class="chart-title">ЧКЗ — Компрессоры и резервуары</div>
+            <div id="supplierRadar-0" class="supplier-radar-chart"></div>
+          </div>
+          <div class="card monitor-card">
+            <div class="chart-title">РЭД — Тяговые двигатели</div>
+            <div id="supplierRadar-1" class="supplier-radar-chart"></div>
+          </div>
+          <div class="card monitor-card">
+            <div class="chart-title">УП — Носовой модуль и обтекатели</div>
+            <div id="supplierRadar-2" class="supplier-radar-chart"></div>
+          </div>
+          <div class="card monitor-card">
+            <div class="chart-title">ТАЙРА — Системы охлаждения двигатели</div>
+            <div id="supplierRadar-3" class="supplier-radar-chart"></div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- End Tab Content: Мониторинг -->
@@ -629,6 +650,20 @@ const MONITORING_DATA = {
     { name: 'Отсутствие ремонтной базы', probability: 'средняя', impact: 'высокое', color: '#FF884D' }
   ]
 };
+const SUPPLIER_RADAR_INDICATORS = [
+  { name: 'Готовность ОКР', max: 5 },
+  { name: 'Документация ОКР', max: 5 },
+  { name: 'Производство', max: 5 },
+  { name: 'Культура', max: 5 },
+  { name: 'Надёжность', max: 5 },
+  { name: 'Соответствие ТТ', max: 5 }
+];
+const SUPPLIER_RADARS = [
+  { id: 'supplierRadar-0', values: [4,4,4,5,3,4], color: '#038681' },
+  { id: 'supplierRadar-1', values: [4,4,5,5,4,4], color: '#135457' },
+  { id: 'supplierRadar-2', values: [4,2,3,2,5,5], color: '#F34C3F' },
+  { id: 'supplierRadar-3', values: [4,4,4,4,4,4], color: '#92DAD9' }
+];
 
 function formatNumber(value){
   const num = Number(value || 0);
@@ -870,11 +905,50 @@ function initMonitoringRiskMatrix(){
   }, true);
 }
 
+function initSupplierRadars(){
+  SUPPLIER_RADARS.forEach((config, index) => {
+    const chart = getChartInstance(config.id);
+    if(!chart) return;
+    const color = config.color || ['#038681','#135457','#F34C3F','#92DAD9'][index % 4];
+    chart.setOption({
+      radar: {
+        indicator: SUPPLIER_RADAR_INDICATORS,
+        radius: '70%',
+        splitNumber: 5,
+        axisName: { fontFamily: 'Moscow Sans, sans-serif', color: 'rgba(42,48,67,.8)' },
+        splitLine: { lineStyle: { color: 'rgba(42,48,67,0.2)' } },
+        splitArea: { areaStyle: { color: ['rgba(146,218,217,0.10)','rgba(146,218,217,0.04)'] } },
+        axisLine: { lineStyle: { color: 'rgba(42,48,67,0.25)' } }
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: config.values,
+          areaStyle: { color: hexToAlpha(color, 0.25) },
+          lineStyle: { color, width: 2 },
+          symbol: 'circle',
+          symbolSize: 4,
+          itemStyle: { color }
+        }]
+      }]
+    }, true);
+  });
+}
+
+function hexToAlpha(hex, alpha){
+  const clean = hex?.replace('#','') || '000000';
+  const bigint = parseInt(clean, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function initMonitoringTab(force=false){
   const container = document.getElementById('tab-monitoring');
   if(!container) return;
   if(monitoringInitialized && !force){
-    ['monitorRadar','monitorRiskMatrix'].forEach(id=>{
+    ['monitorRadar','monitorRiskMatrix', ...SUPPLIER_RADARS.map(r => r.id)].forEach(id=>{
       const inst = echarts.getInstanceByDom(document.getElementById(id));
       if(inst){ inst.resize(); }
     });
@@ -885,6 +959,7 @@ function initMonitoringTab(force=false){
   renderMonitoringProgressBars();
   initMonitoringRadar();
   initMonitoringRiskMatrix();
+  initSupplierRadars();
 }
 
 function setVisitsKPI(kpi){
